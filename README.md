@@ -11,8 +11,8 @@ git clone https://github.com/giulbia/baby_cry_detection
 
 # Principais notebooks
 
-Todos os notebooks estão na pasta [learning](learning\).
+Todos os notebooks estão na pasta [learning](learning/).
 
 Principais: 
-1. Treinamento individualizado: [full_test_notebook](learning\full_test_notebook.ipynb)
-1. Testes com filtro e espectrogramas: [tcc-teste-real](learning\tcc-teste-real.ipynb)
+1. Treinamento individualizado: [full_test_notebook](learning/full_test_notebook.ipynb)
+1. Testes com filtro e espectrogramas: [tcc-teste-real](learning/tcc-teste-real.ipynb)
