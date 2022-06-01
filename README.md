@@ -2,7 +2,7 @@
 Ninando - Projeto de detecção de choro de bebês em dispositivos móveis (Pós-Graduação em Ciências da Computação - FURB)
 
 # Setup
-Necessário clonar os repos do DonateACry e baby_cry_detection.
+Necessário clonar os repos do [DonateACry](https://github.com/gveres/donateacry-corpus) e [baby_cry_detection](https://github.com/giulbia/baby_cry_detection).
 
 ```bash
 git clone https://github.com/gveres/donateacry-corpus
