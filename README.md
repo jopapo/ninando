@@ -16,3 +16,8 @@ Todos os notebooks estão na pasta [learning](learning/).
 Principais: 
 1. Treinamento individualizado: [full_test_notebook](learning/full_test_notebook.ipynb)
 1. Testes com filtro e espectrogramas: [tcc-teste-real](learning/tcc-teste-real.ipynb)
+
+
+# Observações
+
+Para ler MP3 é necessário ter o ffmpeg acessível via linha de comando.
