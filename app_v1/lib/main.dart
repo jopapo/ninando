@@ -1,7 +1,8 @@
-import 'package:ninando/recording/record_to_stream.dart';
 import 'package:flutter/material.dart';
 
+import 'recording/record_to_stream.dart';
 import 'contacting/call.dart';
+import 'detecting/predict.dart';
 
 void main() {
   runApp(const MyApp());
@@ -50,6 +51,10 @@ class _MyHomePageState extends State<MyHomePage> {
           SizedBox(
             height: 80,
             child: CallNotificatorWidget(),
+          ),
+          SizedBox(
+            height: 80,
+            child: PredictionWidget(),
           ),
         ],
       ),

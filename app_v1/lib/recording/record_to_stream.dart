@@ -19,14 +19,12 @@
 
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
+//import 'dart:typed_data';
 //import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:pytorch_mobile/model.dart';
-import 'package:pytorch_mobile/pytorch_mobile.dart';
 
 /*
  * This is an example showing how to record to a Dart Stream.
@@ -56,9 +54,7 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
   bool _mplaybackReady = false;
   String? _mPath;
   StreamSubscription? _mRecordingDataSubscription;
-  StreamSubscription<RecordingDisposition>? _mRecordingProgressSubscription;
-  Future<Model> customModel =
-      PyTorchMobile.loadModel('assets/models/sample1.pt');
+  // StreamSubscription<RecordingDisposition>? _mRecordingProgressSubscription;
 
   int pos = 0;
   double dbLevel = 0;
@@ -150,8 +146,8 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
 
     _mRecordingDataSubscription!.cancel();
     _mRecordingDataSubscription = null;
-    _mRecordingProgressSubscription!.cancel();
-    _mRecordingProgressSubscription = null;
+    // _mRecordingProgressSubscription!.cancel();
+    // _mRecordingProgressSubscription = null;
 
     super.dispose();
   }
