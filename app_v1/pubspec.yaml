@@ -38,9 +38,10 @@ dependencies:
   flutter_phone_direct_caller: ^2.1.1
   # Run the model
   pytorch_mobile: ^0.2.1
+  sklite: ^0.0.1
 
-  # cross 
-  logger: ^1.1.0
+  # Math
+  stats: ^2.0.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -72,6 +73,7 @@ flutter:
   assets:
     - assets/models/sample1.pt
     - assets/models/sample2.pt
+    - assets/models/svc-1.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.
@@ -98,3 +100,4 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+

@@ -68,6 +68,7 @@ android {
         pickFirst 'lib/armeabi-v7a/libc++_shared.so'
         pickFirst 'lib/arm64-v8a/libc++_shared.so'
     }
+    
 }
 
 flutter {
@@ -77,3 +78,4 @@ flutter {
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 }
+

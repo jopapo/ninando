@@ -1,11 +1,15 @@
 // https://pub.dev/packages/pytorch_mobile
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:pytorch_mobile/enums/dtype.dart';
 import 'package:pytorch_mobile/model.dart';
 import 'package:pytorch_mobile/pytorch_mobile.dart';
-import 'package:logger/logger.dart';
-//import 'dart:developer' as developer;
+import 'package:sklite/SVM/SVM.dart';
+import 'package:sklite/utils/io.dart';
+import 'dart:developer' as developer;
+import 'package:stats/stats.dart';
 
 /// Example app.
 class PredictionWidget extends StatefulWidget {
@@ -25,67 +29,71 @@ class _PredictionWidgetState extends State<PredictionWidget> {
   }
 
   Future<void> _predict() async {
-    final logger = Logger();
+    //var assetPath = 'assets/models/sample1.pt';
+    var assetPath = "assets/models/svc-1.json";
+    developer.log("Loading model $assetPath");
 
-    var assetPath = 'assets/models/sample1.pt';
-    logger.d("Loading model", assetPath);
+    //Model customModel = await PyTorchMobile.loadModel(assetPath);
+    //var customModel = loadModel(assetPath);
 
-    Model customModel = await PyTorchMobile.loadModel(assetPath);
+    loadModel(assetPath).then((x) {
+      var svc = SVC.fromMap(json.decode(x));
+      predict(svc);
+    });
+  }
 
+  void predict(SVC customModel) {
     var tests = [
       [
-        0.08522150522041763,
-        0.030852370598112397,
-        -349.72184795901836,
-        77.89076290882933,
-        -27.630426193058074,
-        20.406152046196976,
-        -32.94042322530547,
-        6.97672376306317,
-        -45.972654643578764,
-        4.240683727191109,
-        -32.477048890496626,
-        4.10894878585488,
-        7.191011511169703,
-        -25.78896414203323,
-        -4.275995403320772,
-        4360.281078270551,
-        10528.487302421694,
-        4076.744587609188
-      ],
+        0.6230733206121143,
+        -0.8810694323586448,
+        -0.38057744106573466,
+        -0.6788806645119531,
+        -0.4460772921817446,
+        0.14766801504833837,
+        -1.7383904143688906,
+        -0.01503877115090547,
+        -3.2542860444643,
+        -0.24428259724341012,
+        -3.0374036523756076,
+        0.2479474386012638,
+        0.8040161036022242,
+        -2.891822432879864,
+        -0.8535817566023588,
+        2.0186658889126603,
+        1.4659050440895893,
+        0.7048924690172764
+      ], // 0
       [
-        0.0575254223462877,
-        0.03878751955332187,
-        -359.36640204409713,
-        89.16152922681202,
-        -19.130301450286275,
-        16.12922362087774,
-        -26.75561651732695,
-        -5.065895164821928,
-        -35.52834761446977,
-        -8.743458662674765,
-        -33.517937830595294,
-        1.7380714627402012,
-        8.499837581284362,
-        -22.920507246961172,
-        -8.528495653668578,
-        3445.647021016951,
-        9135.324032953886,
-        3751.9222202377164
-      ]
+        0.19135959333547403,
+        -0.8370162303030986,
+        -0.5374184427786426,
+        -0.5475556439460879,
+        -0.22818162385899296,
+        -0.14531519076214672,
+        -1.3237762849753938,
+        -0.5604561911428055,
+        -2.5708854478508294,
+        -0.9759990776328569,
+        -2.9428700620567607,
+        -0.07060079702773044,
+        0.9114726820493337,
+        -2.723131966435068,
+        -1.064646039643554,
+        1.2247205427988122,
+        0.9827558665928783,
+        0.4603174768927352
+      ] // 1
     ];
 
-    var shape = [1, 18];
+    //var shape = [18];
+    for (var i = 0; i < tests.length; i++) {
+      // var prediction =
+      //     await customModel.getPrediction(tests[i], shape, DType.float32);
 
-    List? prediction =
-        await customModel.getPrediction(tests[0], shape, DType.float32);
-
-    logger.d("Log pred, ", prediction);
-
-    List? prediction2 =
-        await customModel.getPrediction(tests[1], shape, DType.float32);
-
-    logger.d("Log pred2, ", prediction2);
+      var prediction = customModel.predict(tests[i]);
+      developer.log("Log pred: ${[i, prediction]}");
+    }
   }
 
   @override
