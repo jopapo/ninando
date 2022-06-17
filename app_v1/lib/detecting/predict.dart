@@ -1,15 +1,17 @@
 // https://pub.dev/packages/pytorch_mobile
 
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:pytorch_mobile/enums/dtype.dart';
-import 'package:pytorch_mobile/model.dart';
-import 'package:pytorch_mobile/pytorch_mobile.dart';
+// import 'package:pytorch_mobile/enums/dtype.dart';
+// import 'package:pytorch_mobile/model.dart';
+// import 'package:pytorch_mobile/pytorch_mobile.dart';
+// ignore: import_of_legacy_library_into_null_safe
 import 'package:sklite/SVM/SVM.dart';
+// ignore: import_of_legacy_library_into_null_safe
 import 'package:sklite/utils/io.dart';
 import 'dart:developer' as developer;
-import 'package:stats/stats.dart';
 
 /// Example app.
 class PredictionWidget extends StatefulWidget {
@@ -42,47 +44,100 @@ class _PredictionWidgetState extends State<PredictionWidget> {
     });
   }
 
+  /// https://stackoverflow.com/questions/40758562/can-anyone-explain-me-standardscaler
+  List<double> standardScaler(List<double> values) {
+    var featureMeans = [
+      0.049971,
+      0.110803,
+      -311.205094,
+      112.776219,
+      -9.223425,
+      18.414529,
+      -4.045880,
+      3.435483,
+      0.790667,
+      3.239740,
+      1.152651,
+      2.463913,
+      -0.064407,
+      -0.111859,
+      0.114910,
+      2412.593058,
+      6.792487e+03,
+      3.214534e+03
+    ];
+
+    var featureVars = [
+      0.001558,
+      0.007403,
+      8031.033092,
+      1859.978735,
+      1885.003648,
+      247.324044,
+      294.303209,
+      230.088700,
+      199.573403,
+      150.746311,
+      138.797059,
+      105.697523,
+      88.285784,
+      70.155498,
+      65.911219,
+      711495.260635,
+      5.683198e+06,
+      1.362893e+06
+    ];
+
+    var result = List<double>.generate(
+        values.length,
+        (index) =>
+            (values[index] - featureMeans[index]) / sqrt(featureVars[index]));
+    (values.length);
+    developer.log("standardScaler $result");
+    return result;
+  }
+
   void predict(SVC customModel) {
     var tests = [
       [
-        0.6230733206121143,
-        -0.8810694323586448,
-        -0.38057744106573466,
-        -0.6788806645119531,
-        -0.4460772921817446,
-        0.14766801504833837,
-        -1.7383904143688906,
-        -0.01503877115090547,
-        -3.2542860444643,
-        -0.24428259724341012,
-        -3.0374036523756076,
-        0.2479474386012638,
-        0.8040161036022242,
-        -2.891822432879864,
-        -0.8535817566023588,
-        2.0186658889126603,
-        1.4659050440895893,
-        0.7048924690172764
+        0.07456768416473318,
+        0.0349972660301076,
+        -345.31093390303255,
+        83.49781324028139,
+        -28.590596779109156,
+        20.736835578132396,
+        -33.868432888437034,
+        3.2073644044919245,
+        -45.18277865385512,
+        0.24046769361346615,
+        -34.63165851314217,
+        5.013043599034684,
+        7.490170033393631,
+        -24.33343967795372,
+        -6.81495497802709,
+        4115.341337344389,
+        10287.12557551479,
+        4037.44639117785
       ], // 0
       [
-        0.19135959333547403,
-        -0.8370162303030986,
-        -0.5374184427786426,
-        -0.5475556439460879,
-        -0.22818162385899296,
-        -0.14531519076214672,
-        -1.3237762849753938,
-        -0.5604561911428055,
-        -2.5708854478508294,
-        -0.9759990776328569,
-        -2.9428700620567607,
-        -0.07060079702773044,
-        0.9114726820493337,
-        -2.723131966435068,
-        -1.064646039643554,
-        1.2247205427988122,
-        0.9827558665928783,
-        0.4603174768927352
+        0.0575254223462877,
+        0.03878751955332187,
+        -359.36640204409713,
+        89.16152922681202,
+        -19.130301450286275,
+        16.12922362087774,
+        -26.75561651732695,
+        -5.065895164821928,
+        -35.52834761446977,
+        -8.743458662674765,
+        -33.517937830595294,
+        1.7380714627402012,
+        8.499837581284362,
+        -22.920507246961172,
+        -8.528495653668578,
+        3445.647021016951,
+        9135.324032953886,
+        3751.9222202377164
       ] // 1
     ];
 
@@ -91,7 +146,9 @@ class _PredictionWidgetState extends State<PredictionWidget> {
       // var prediction =
       //     await customModel.getPrediction(tests[i], shape, DType.float32);
 
-      var prediction = customModel.predict(tests[i]);
+      var stdVals = standardScaler(tests[i]);
+
+      var prediction = customModel.predict(stdVals);
       developer.log("Log pred: ${[i, prediction]}");
     }
   }

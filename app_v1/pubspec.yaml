@@ -37,11 +37,14 @@ dependencies:
   # Phone Call
   flutter_phone_direct_caller: ^2.1.1
   # Run the model
-  pytorch_mobile: ^0.2.1
+  #pytorch_mobile: ^0.2.1
   sklite: ^0.0.1
 
+  # Waveform
+  #flutter_audio_waveforms: ^1.2.1+6
+
   # Math
-  stats: ^2.0.0
+  #fftea: ^1.1.0+1
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

@@ -142,13 +142,6 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.6.4"
-  json_annotation:
-    dependency: transitive
-    description:
-      name: json_annotation
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "4.5.0"
   lints:
     dependency: transitive
     description:
@@ -310,13 +303,6 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "6.0.3"
-  pytorch_mobile:
-    dependency: "direct main"
-    description:
-      name: pytorch_mobile
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "0.2.1"
   recase:
     dependency: transitive
     description:
@@ -357,13 +343,6 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.10.0"
-  stats:
-    dependency: "direct main"
-    description:
-      name: stats
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "2.0.0"
   stream_channel:
     dependency: transitive
     description:

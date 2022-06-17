@@ -2,6 +2,7 @@ donateacry-corpus
 baby_cry_detection
 ffmpeg-5.0.1-essentials_build
 output
+venv*
 
 learning/my_data/filtered/*
 learning/my_data/offset_test/*

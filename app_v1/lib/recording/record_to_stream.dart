@@ -19,12 +19,17 @@
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 //import 'dart:typed_data';
 //import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+// import 'package:fftea/fftea.dart';
+import 'dart:developer' as developer;
+// import 'dart:math';
+// import 'package:collection/collection.dart';
 
 /*
  * This is an example showing how to record to a Dart Stream.
@@ -38,6 +43,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 ///
 const int tSampleRate = 44100;
+const int tBitRate = 16000;
 typedef _Fn = void Function();
 
 /// Example app.
@@ -54,11 +60,11 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
   bool _mplaybackReady = false;
   String? _mPath;
   StreamSubscription? _mRecordingDataSubscription;
-  // StreamSubscription<RecordingDisposition>? _mRecordingProgressSubscription;
+  StreamSubscription<RecordingDisposition>? _mRecordingProgressSubscription;
 
   int pos = 0;
   double dbLevel = 0;
-  int samples = 0;
+  final spectrogram = <Float64List>[];
 
   Future<void> _openRecorder() async {
     // Zera caso reinicie
@@ -95,22 +101,23 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
       _mRecorderIsInited = true;
     });
 
-    // _mRecordingProgressSubscription = _mRecorder!.onProgress!.listen((e) {
-    //   setState(() {
-    //     pos = e.duration.inMilliseconds;
-    //     if (e.decibels != null) {
-    //       dbLevel = e.decibels as double;
-    //     }
-    //   });
-    // });
+    _mRecorder!.setSubscriptionDuration(const Duration(milliseconds: 250));
+    _mRecordingProgressSubscription = _mRecorder!.onProgress!.listen((e) {
+      setState(() {
+        pos = e.duration.inMilliseconds;
+        if (e.decibels != null) {
+          dbLevel = e.decibels as double;
+        }
+      });
+    });
   }
 
   @override
   void initState() {
-    Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(
-          () {}); // Só pra forçar atualização, pois não quero pra cada fluxo de dados
-    });
+    // Timer.periodic(const Duration(seconds: 1), (timer) {
+    //   setState(
+    //       () {}); // Só pra forçar atualização, pois não quero pra cada fluxo de dados
+    // });
 
     super.initState();
     // Be careful : openAudioSession return a Future.
@@ -122,17 +129,6 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
     });
     _openRecorder(); //.then((value) => _registerEvents());
   }
-
-  // void _registerEvents() {
-  //   _mRecordingProgressSubscription = _mRecorder!.onProgress!.listen((e) {
-  //     setState(() {
-  //       pos = e.duration.inMilliseconds;
-  //       if (e.decibels != null) {
-  //         dbLevel = e.decibels as double;
-  //       }
-  //     });
-  //   });
-  // }
 
   @override
   void dispose() {
@@ -146,13 +142,13 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
 
     _mRecordingDataSubscription!.cancel();
     _mRecordingDataSubscription = null;
-    // _mRecordingProgressSubscription!.cancel();
-    // _mRecordingProgressSubscription = null;
+    _mRecordingProgressSubscription!.cancel();
+    _mRecordingProgressSubscription = null;
 
     super.dispose();
   }
 
-  Future<IOSink> createFile() async {
+  Future<IOSink> createSink() async {
     var tempDir = await getTemporaryDirectory();
     _mPath = '${tempDir.path}/flutter_sound_example.pcm';
     var outputFile = File(_mPath!);
@@ -168,30 +164,36 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
     assert(_mRecorderIsInited && _mPlayer!.isStopped);
     var tempDir = await getTemporaryDirectory();
     _mPath = '${tempDir.path}/flutter_sound_example.pcm';
-    var sink = await createFile();
+    //var sink = await createSink();
     var recordingDataController = StreamController<Food>();
-    _mRecordingDataSubscription =
-        recordingDataController.stream.listen((buffer) {
-      if (buffer is FoodData) {
-        sink.add(buffer.data!);
-        samples++;
-        if (samples > 127) {
-          samples = 0;
-          //Uint8List myWavBuffer = await flutterSoundHelper.pcmToWaveBuffer(
-          //     inputBuffer: buffer.data!, numChannels: 1, sampleRate: tSampleRate);
-        }
-      }
+    var batchTransformer = BatchTransformer();
 
-      // Uint8List myWavBuffer = await flutterSoundHelper.pcmToWaveBuffer(
-      //     inputBuffer: buffer.data!, numChannels: 1, sampleRate: tSampleRate);
+    //final fft = FFT(1415);
+    // const chunkSize = 1415;
+    // final stft = STFT(chunkSize, Window.hanning(chunkSize));
+
+    // _mRecordingDataSubscription =
+    //     recordingDataController.stream.listen((buffer) {
+    //   if (buffer is FoodData) {
+    //     sink.add(buffer.data!);
+    //   }
+    // });
+    _mRecordingDataSubscription = recordingDataController.stream
+        .transform(batchTransformer)
+        .listen((event) {
+      developer.log("batch: " +
+          event.length.toString() +
+          ", take 100: " +
+          event.take(100).toString());
     });
 
     await _mRecorder!.startRecorder(
-      toStream: recordingDataController.sink,
-      codec: Codec.pcm16,
-      numChannels: 1, // Mono
-      sampleRate: tSampleRate,
-    );
+        toStream: recordingDataController.sink,
+        codec: Codec.pcm16,
+        numChannels: 1, // Mono
+        sampleRate: tSampleRate,
+        bitRate: tBitRate);
+
     setState(() {});
   }
   // --------------------- (it was very simple, wasn't it ?) -------------------
@@ -318,4 +320,113 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
       body: _makeBody(),
     );
   }
+
+  void handleData(data, EventSink sink) {}
 }
+
+class BatchTransformer implements StreamTransformer<Food, List<double>> {
+  final StreamController<List<double>> _controller =
+      StreamController<List<double>>();
+  List<double> data = List<double>.empty(growable: true);
+
+  double _uInt8ToFloat(int n) {
+    return (n - 127) / 128;
+  }
+
+  @override
+  Stream<List<double>> bind(Stream<Food> stream) {
+    int limits = tSampleRate * 5; // 5s
+
+    stream.listen((buffer) {
+      Uint8List sourceData = (buffer as FoodData).data!;
+      int totalSize = data.length + sourceData.buffer.lengthInBytes;
+      var fullSource = sourceData.buffer.asUint8List();
+      if (totalSize <= limits) {
+        data.addAll(fullSource.map<double>(_uInt8ToFloat));
+      } else {
+        int filSize = limits - data.length;
+        data.addAll(fullSource.take(filSize).map<double>(_uInt8ToFloat));
+        _controller.add(data);
+        data = List<double>.empty(growable: true);
+        // Adiciona o restante
+        data.addAll(fullSource.skip(filSize).map<double>(_uInt8ToFloat));
+      }
+    }).onDone(() {
+      if (data.isNotEmpty) {
+        _controller.add(data);
+        data = List<double>.empty(growable: true);
+      }
+    });
+
+    // return an output stream for our listener
+    return _controller.stream;
+  }
+
+  @override
+  StreamTransformer<RS, RT> cast<RS, RT>() {
+    return StreamTransformer.castFrom(this);
+  }
+}
+
+// class MemoryStream extends StreamSink<Uint8List> {
+//   /// the data to be sent (or received)
+//   List<double> data;
+  
+
+//   /// The constructor, specifying the data to be sent or that has been received
+//   /* ctor */ MemoryStream(this.data);
+
+//   @override
+//   void add(Uint8List event) {
+//     data.addAll(event.map<double>(_uInt8ToFloat));
+//     _checkBatchDone();
+//   }
+
+//   double _uInt8ToFloat(int n) {
+//     //developer.log(buffer.data!.buffer.lengthInBytes.toString());
+
+//     //final freq = fft.realFft(buffer.data!);
+//     //final spectrogram = <Float64List>[];
+
+//     //double int16limit = 1.0 / pow(2.0, 16);
+
+//     return (n - 127) /
+//         128; // Esse cálculo deve ser melhorado. Tratamento binário é o mais adequado.
+
+//     //return event.expand(__uInt8ToFloat);
+
+//     // var floatData = buffer.data!.expand(int16ToFloat).toList();
+
+//     // stft.run(floatData, (Float64x2List freq) {
+//     //   spectrogram.add(freq.discardConjugates().magnitudes());
+//     // });
+//   }
+
+//   void _checkBatchDone() {
+
+//   }
+
+//   @override
+//   void addError(Object error, [StackTrace? stackTrace]) {
+//     _doneCompleter.completeError(error, stackTrace);
+//   }
+
+//   @override
+//   Future addStream(Stream<Uint8List> stream) {
+//     return Future(() {
+//       return stream.map<Iterable<double>>((element) {
+//         return element.map<double>(_uInt8ToFloat);
+//       });
+//     });
+//   }
+
+//   @override
+//   Future close() {
+//     _checkBatchDone
+//     data.clear();
+//     return done;
+//   }
+
+//   @override
+//   Future get done => _doneCompleter.future;
+// }
