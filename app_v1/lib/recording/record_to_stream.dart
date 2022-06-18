@@ -18,6 +18,7 @@
  */
 
 import 'dart:async';
+import 'dart:ffi';
 import 'dart:io';
 import 'dart:typed_data';
 //import 'dart:typed_data';
@@ -149,7 +150,8 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
   }
 
   Future<IOSink> createSink() async {
-    var tempDir = await getTemporaryDirectory();
+    //var tempDir = await getTemporaryDirectory();
+    var tempDir = await getApplicationDocumentsDirectory();
     _mPath = '${tempDir.path}/flutter_sound_example.pcm';
     var outputFile = File(_mPath!);
     if (outputFile.existsSync()) {
@@ -162,9 +164,8 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
 
   Future<void> record() async {
     assert(_mRecorderIsInited && _mPlayer!.isStopped);
-    var tempDir = await getTemporaryDirectory();
-    _mPath = '${tempDir.path}/flutter_sound_example.pcm';
-    //var sink = await createSink();
+
+    // var sink = await createSink();
     var recordingDataController = StreamController<Food>();
     var batchTransformer = BatchTransformer();
 
@@ -178,9 +179,15 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
     //     sink.add(buffer.data!);
     //   }
     // });
+
+    final Directory directory = await getApplicationDocumentsDirectory();
+    final File file = File('${directory.path}/float_data_from_device.txt');
+
     _mRecordingDataSubscription = recordingDataController.stream
         .transform(batchTransformer)
         .listen((event) {
+      file.writeAsStringSync(event.toString());
+
       developer.log("batch: " +
           event.length.toString() +
           ", take 100: " +
@@ -324,34 +331,50 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
   void handleData(data, EventSink sink) {}
 }
 
+extension Normalizing16bits on Iterable<int> {
+  // https://libsndfile.github.io/libsndfile/FAQ.html#Q010
+  static double normFactor = 0x8000;
+
+  double _normalizeInt16ToFloat(int n) {
+    return n / normFactor;
+  }
+
+  Iterable<double> normalize() {
+    return map<double>(_normalizeInt16ToFloat);
+  }
+}
+
 class BatchTransformer implements StreamTransformer<Food, List<double>> {
   final StreamController<List<double>> _controller =
       StreamController<List<double>>();
   List<double> data = List<double>.empty(growable: true);
-
-  double _uInt8ToFloat(int n) {
-    return (n - 127) / 128;
-  }
 
   @override
   Stream<List<double>> bind(Stream<Food> stream) {
     int limits = tSampleRate * 5; // 5s
 
     stream.listen((buffer) {
-      Uint8List sourceData = (buffer as FoodData).data!;
-      int totalSize = data.length + sourceData.buffer.lengthInBytes;
-      var fullSource = sourceData.buffer.asUint8List();
+      // Filha da puta! Vem com envelope. Demorei pra cacete pra descobrir.
+      Uint8List pcmBuffer = flutterSoundHelper.waveToPCMBuffer(
+          inputBuffer: (buffer as FoodData).data!);
+      var pcm16 = pcmBuffer.buffer.asInt16List();
+      // asInt16List();
+      int dataTo16Size = data.length;
+      int totalSize = dataTo16Size + pcm16.length;
       if (totalSize <= limits) {
-        data.addAll(fullSource.map<double>(_uInt8ToFloat));
+        data.addAll(pcm16.normalize());
       } else {
-        int filSize = limits - data.length;
-        data.addAll(fullSource.take(filSize).map<double>(_uInt8ToFloat));
+        int fitSize = limits - dataTo16Size;
+        data.addAll(pcm16.take(fitSize).normalize());
+
+        developer.log('C: dataSize: ' + data.length.toString());
+
         _controller.add(data);
         data = List<double>.empty(growable: true);
-        // Adiciona o restante
-        data.addAll(fullSource.skip(filSize).map<double>(_uInt8ToFloat));
+        data.addAll(pcm16.skip(fitSize).normalize());
       }
     }).onDone(() {
+      developer.log('B: dataSize: ' + data.length.toString());
       if (data.isNotEmpty) {
         _controller.add(data);
         data = List<double>.empty(growable: true);

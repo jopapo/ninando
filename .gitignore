@@ -3,6 +3,7 @@ baby_cry_detection
 ffmpeg-5.0.1-essentials_build
 output
 venv*
+.idea
 
 learning/my_data/filtered/*
 learning/my_data/offset_test/*
