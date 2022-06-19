@@ -197,7 +197,7 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
           ", take 100: " +
           event.take(100).toString());
 
-      developer.log("zcr:" + test.zcr().toString());
+      developer.log("zcr:" + test.zeroCrossingRate().toString());
     });
 
     await _mRecorder!.startRecorder(

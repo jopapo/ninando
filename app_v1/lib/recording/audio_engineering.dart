@@ -16,7 +16,7 @@ class AudioEngineering {
         .toList();
   }
 
-  double zcr({int frameLength = 2048, int hopLength = 512}) {
+  double zeroCrossingRate({int frameLength = 2048, int hopLength = 512}) {
     int padding = frameLength ~/ 2; // truncating division
 
     double getByIndex(int index) {
