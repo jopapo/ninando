@@ -18,19 +18,20 @@
  */
 
 import 'dart:async';
-import 'dart:ffi';
+//import 'dart:ffi';
 import 'dart:io';
 import 'dart:typed_data';
 //import 'dart:typed_data';
 //import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
+//import 'package:flutter/services.dart';
 import 'package:flutter_sound/flutter_sound.dart';
+import 'package:ninando/recording/audio_engineering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 // import 'package:fftea/fftea.dart';
 import 'dart:developer' as developer;
 // import 'dart:math';
-// import 'package:collection/collection.dart';
 
 /*
  * This is an example showing how to record to a Dart Stream.
@@ -183,6 +184,9 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
     final Directory directory = await getApplicationDocumentsDirectory();
     final File file = File('${directory.path}/float_data_from_device.txt');
 
+    AudioEngineering test =
+        AudioEngineering(await AudioEngineering.getTestData());
+
     _mRecordingDataSubscription = recordingDataController.stream
         .transform(batchTransformer)
         .listen((event) {
@@ -192,6 +196,8 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
           event.length.toString() +
           ", take 100: " +
           event.take(100).toString());
+
+      developer.log("zcr:" + test.zcr().toString());
     });
 
     await _mRecorder!.startRecorder(
@@ -390,66 +396,3 @@ class BatchTransformer implements StreamTransformer<Food, List<double>> {
     return StreamTransformer.castFrom(this);
   }
 }
-
-// class MemoryStream extends StreamSink<Uint8List> {
-//   /// the data to be sent (or received)
-//   List<double> data;
-  
-
-//   /// The constructor, specifying the data to be sent or that has been received
-//   /* ctor */ MemoryStream(this.data);
-
-//   @override
-//   void add(Uint8List event) {
-//     data.addAll(event.map<double>(_uInt8ToFloat));
-//     _checkBatchDone();
-//   }
-
-//   double _uInt8ToFloat(int n) {
-//     //developer.log(buffer.data!.buffer.lengthInBytes.toString());
-
-//     //final freq = fft.realFft(buffer.data!);
-//     //final spectrogram = <Float64List>[];
-
-//     //double int16limit = 1.0 / pow(2.0, 16);
-
-//     return (n - 127) /
-//         128; // Esse cálculo deve ser melhorado. Tratamento binário é o mais adequado.
-
-//     //return event.expand(__uInt8ToFloat);
-
-//     // var floatData = buffer.data!.expand(int16ToFloat).toList();
-
-//     // stft.run(floatData, (Float64x2List freq) {
-//     //   spectrogram.add(freq.discardConjugates().magnitudes());
-//     // });
-//   }
-
-//   void _checkBatchDone() {
-
-//   }
-
-//   @override
-//   void addError(Object error, [StackTrace? stackTrace]) {
-//     _doneCompleter.completeError(error, stackTrace);
-//   }
-
-//   @override
-//   Future addStream(Stream<Uint8List> stream) {
-//     return Future(() {
-//       return stream.map<Iterable<double>>((element) {
-//         return element.map<double>(_uInt8ToFloat);
-//       });
-//     });
-//   }
-
-//   @override
-//   Future close() {
-//     _checkBatchDone
-//     data.clear();
-//     return done;
-//   }
-
-//   @override
-//   Future get done => _doneCompleter.future;
-// }
