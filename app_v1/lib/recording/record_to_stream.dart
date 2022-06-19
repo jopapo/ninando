@@ -31,7 +31,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 // import 'package:fftea/fftea.dart';
 import 'dart:developer' as developer;
-// import 'dart:math';
+
+import 'batch_transformer.dart';
 
 /*
  * This is an example showing how to record to a Dart Stream.
@@ -168,7 +169,7 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
 
     // var sink = await createSink();
     var recordingDataController = StreamController<Food>();
-    var batchTransformer = BatchTransformer();
+    var batchTransformer = BatchTransformer(tSampleRate);
 
     //final fft = FFT(1415);
     // const chunkSize = 1415;
@@ -186,6 +187,7 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
 
     AudioEngineering test =
         AudioEngineering(await AudioEngineering.getTestData());
+    //AudioEngineering(<double>[-1, -2, -3, -4, 0, 6, 7, -8, 9, 9]);
 
     _mRecordingDataSubscription = recordingDataController.stream
         .transform(batchTransformer)
@@ -197,7 +199,10 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
           ", take 100: " +
           event.take(100).toString());
 
-      developer.log("zcr:" + test.zeroCrossingRate().toString());
+      developer.log("zcr:" +
+          test.zeroCrossingRate(frameLength: 6, hopLength: 2).toString());
+      developer.log("rms:" +
+          test.rootMeanSquare(frameLength: 6, hopLength: 2).toString());
     });
 
     await _mRecorder!.startRecorder(
@@ -335,64 +340,4 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
   }
 
   void handleData(data, EventSink sink) {}
-}
-
-extension Normalizing16bits on Iterable<int> {
-  // https://libsndfile.github.io/libsndfile/FAQ.html#Q010
-  static double normFactor = 0x8000;
-
-  double _normalizeInt16ToFloat(int n) {
-    return n / normFactor;
-  }
-
-  Iterable<double> normalize() {
-    return map<double>(_normalizeInt16ToFloat);
-  }
-}
-
-class BatchTransformer implements StreamTransformer<Food, List<double>> {
-  final StreamController<List<double>> _controller =
-      StreamController<List<double>>();
-  List<double> data = List<double>.empty(growable: true);
-
-  @override
-  Stream<List<double>> bind(Stream<Food> stream) {
-    int limits = tSampleRate * 5; // 5s
-
-    stream.listen((buffer) {
-      // Filha da puta! Vem com envelope. Demorei pra cacete pra descobrir.
-      Uint8List pcmBuffer = flutterSoundHelper.waveToPCMBuffer(
-          inputBuffer: (buffer as FoodData).data!);
-      var pcm16 = pcmBuffer.buffer.asInt16List();
-      // asInt16List();
-      int dataTo16Size = data.length;
-      int totalSize = dataTo16Size + pcm16.length;
-      if (totalSize <= limits) {
-        data.addAll(pcm16.normalize());
-      } else {
-        int fitSize = limits - dataTo16Size;
-        data.addAll(pcm16.take(fitSize).normalize());
-
-        developer.log('C: dataSize: ' + data.length.toString());
-
-        _controller.add(data);
-        data = List<double>.empty(growable: true);
-        data.addAll(pcm16.skip(fitSize).normalize());
-      }
-    }).onDone(() {
-      developer.log('B: dataSize: ' + data.length.toString());
-      if (data.isNotEmpty) {
-        _controller.add(data);
-        data = List<double>.empty(growable: true);
-      }
-    });
-
-    // return an output stream for our listener
-    return _controller.stream;
-  }
-
-  @override
-  StreamTransformer<RS, RT> cast<RS, RT>() {
-    return StreamTransformer.castFrom(this);
-  }
 }
