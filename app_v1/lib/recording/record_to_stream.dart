@@ -18,20 +18,14 @@
  */
 
 import 'dart:async';
-//import 'dart:ffi';
 import 'dart:io';
 import 'dart:typed_data';
-//import 'dart:typed_data';
-//import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
-//import 'package:flutter/services.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:ninando/recording/audio_engineering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-// import 'package:fftea/fftea.dart';
 import 'dart:developer' as developer;
-
 import 'batch_transformer.dart';
 
 /*
@@ -171,23 +165,13 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
     var recordingDataController = StreamController<Food>();
     var batchTransformer = BatchTransformer(tSampleRate);
 
-    //final fft = FFT(1415);
-    // const chunkSize = 1415;
-    // final stft = STFT(chunkSize, Window.hanning(chunkSize));
-
-    // _mRecordingDataSubscription =
-    //     recordingDataController.stream.listen((buffer) {
-    //   if (buffer is FoodData) {
-    //     sink.add(buffer.data!);
-    //   }
-    // });
-
     final Directory directory = await getApplicationDocumentsDirectory();
     final File file = File('${directory.path}/float_data_from_device.txt');
 
     AudioEngineering test =
-        AudioEngineering(await AudioEngineering.getTestData());
-    //AudioEngineering(<double>[-1, -2, -3, -4, 0, 6, 7, -8, 9, 9]);
+        //AudioEngineering(await AudioEngineering.getTestData());
+        AudioEngineering(<double>[-1, -2, -3, -4, 0, 6, 7, -8, 9, 9],
+            frameLength: 6, hopLength: 2);
 
     _mRecordingDataSubscription = recordingDataController.stream
         .transform(batchTransformer)
@@ -199,8 +183,9 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
           ", take 100: " +
           event.take(100).toString());
 
-      developer.log("zcr:" + test.zeroCrossingRate().toString());
-      developer.log("rms:" + test.rootMeanSquare().toString());
+      //developer.log("zcr:" + test.zeroCrossingRate().toString());
+      //developer.log("rms:" + test.rootMeanSquare().toString());
+      developer.log("spectral_centroid:" + test.spectralCentroid().toString());
     });
 
     await _mRecorder!.startRecorder(
