@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:complex/complex.dart';
 import 'package:fftea/fftea.dart';
 import 'package:fftea/util.dart';
 import 'package:flutter/services.dart';
@@ -69,32 +70,86 @@ class AudioEngineering {
   }
 
   double spectralCentroid() {
-    final stft = STFT(_frameLength, Window.hanning(_frameLength));
     var yFrame = PaddedFramedList(_fixedData, _frameLength, _hopLength);
 
     //final spectrogram = <Float64List>[];
     //var list = yFrame.traverse().map<double>((e) => e.value).toList();
-    var list = yFrame.toList();
-    developer.log('list: ' + list.toString());
-    stft.run(list, (Float64x2List freq) {
-      //spectrogram.add(freq.magnitudes()); //.discardConjugates().magnitudes());
-      developer.log('spectrogram: ' + freq.magnitudes().toString());
-    }, _hopLength);
+    // var list = yFrame.toList();
+    // developer.log('list: ' + list.toString());
+
+    // For some fucking motive, this have only the same result when +1 (problem between librosa and scipy)
+    var window = Window.hanning(_frameLength + 1);
+    var windowRounded = Float64List.sublistView(window, 0, 6)
+        .map((e) => (e * 100.0).roundToDouble() / 100.0)
+        .toList();
+    //Needed to round to avoid periodic tithe
+    //.map<double>((e) => (e * 100).round() / 100)
+    //.toList();
+    developer.log('hann win: ' + windowRounded.toString());
 
     final fft = FFT(_frameLength);
 
-    // For some focking motive, this have only the same result when +1 (problem between librosa and scipy)
-    var window = Window.hanning(_frameLength + 1).toList();
-    developer.log('hann win: ' + window.toString());
-    int windowIndex = 0;
+    // final stft = STFT(_frameLength, window);
+    // var list = yFrame.traverse().map<double>((e) => e.value).toList();
+    // stft.run(list, (Float64x2List freq) {
+    //   //spectrogram.add(freq.magnitudes()); //.discardConjugates().magnitudes());
+    //   developer.log('spectrogram: ' + freq.magnitudes().toString());
+    // });
+
+    // var list = yFrame.traverse().map<double>((e) => e.value).toList();
+    // teste(list, window, fft, (Float64x2List freq) {
+    //   //spectrogram.add(freq.magnitudes()); //.discardConjugates().magnitudes());
+    //   developer.log('spectrogram: ' + freq.magnitudes().toString());
+    // }, _hopLength);
+
     var stftMatrix = yFrame.traverse().map<double>((element) {
-      var value = element.value * window[windowIndex].toDouble();
-      windowIndex++;
-      if (windowIndex >= window.length - 1) windowIndex = 0;
+      var value = element.value * windowRounded[element.frameIndex];
       return value;
-    });
+    }).toList();
 
     developer.log('stftMatrix: ' + stftMatrix.toString());
+
+    final fft2 = FFT(stftMatrix.length);
+    var fftMatrix = fft2.realFft(stftMatrix);
+
+    developer.log('fftMatrix: ' + fftMatrix.magnitudes().toString());
+
+    var comp = const Complex(1.375, -1.9485571);
+    developer.log('cpxAbs: ' + comp.abs().toString());
+
+    var cached = <int, Complex>{};
+
+    // Soma e multiplicação de números complexos
+    //https://www.ufrgs.br/reamat/TransformadasIntegrais/livro-af/rdnceft-nx00fameros_complexos_e_fx00f3rmula_de_euler.html
+    var N = _frameLength;
+    var n = (N ~/ 2 + 1);
+    var compList = List<Complex>.filled(n * N, Complex.zero, growable: false);
+    for (int k = 0; k < n; k++) {
+      yFrame.traverse().forEach((element) {
+        var m = element.frameIndex;
+        var pos = m * k;
+        var c1 = cached[pos];
+        if (c1 == null) {
+          // e^(-2i*pi*m*k/N) -> euller -> e^(ix) = cos(x) + i*sin(x)
+          var exponent = -2 * pi * pos / N;
+          c1 = Complex(cos(exponent), sin(exponent));
+          cached[pos] = c1;
+        }
+        var a2 = element.value * windowRounded[element.frameIndex];
+        //var c2 = Complex(a2, 0);
+        compList[k * _frameLength + element.colIndex] += (c1 * a2);
+      });
+    }
+
+    developer.log('compList: ' + compList.toString());
+    developer.log('compList abs: ' +
+        compList.map<double>((c) => c.abs()).toList().toString());
+
+    // for (int index = 0; index < stftMatrix.length; index += _frameLength) {
+    //   var fromStft = stftMatrix.skip(index).take(_frameLength).toList();
+    //   var realFft = fft.realFft(fromStft);
+    //   developer.log('realFft from $fromStft to ${realFft.toRealArray()}');
+    // }
 
     // var iterator = yFrame.traverse().iterator;
     // while (iterator.moveNext()) {
