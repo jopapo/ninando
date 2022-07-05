@@ -1,18 +1,22 @@
+import 'dart:io';
 import 'dart:typed_data';
+import 'dart:math';
+import 'dart:developer' as developer;
 
 import 'package:complex/complex.dart';
 import 'package:fftea/fftea.dart';
-import 'package:fftea/util.dart';
 import 'package:flutter/services.dart';
 import 'package:collection/collection.dart';
-import 'dart:math';
-import 'dart:developer' as developer;
 import 'package:fftea/stft.dart';
+import 'package:path_provider/path_provider.dart';
 
 class AudioEngineering {
   late List<double> _fixedData;
   late int _frameLength;
   late int _hopLength;
+  final Map<int, Complex> _cachedSenoids = <int, Complex>{};
+  late List<double> _cachedFft = fft().toList();
+  late List<double> _cachedWindow = window().toList();
 
   AudioEngineering(Iterable<double> data,
       {int frameLength = 2048, int hopLength = 512}) {
@@ -32,11 +36,15 @@ class AudioEngineering {
   }
 
   static Future<Iterable<double>> getTestData() async {
-    return (await rootBundle
+    var list = (await rootBundle
             .loadString('assets/ae_data/audio_engineering_audio_data.txt'))
         .split(",")
         .map<double>((e) => double.parse(e))
         .toList();
+
+    developer.log('test data size = ${list.length}');
+
+    return list;
   }
 
   double rootMeanSquare() {
@@ -69,104 +77,52 @@ class AudioEngineering {
     return zeroCrossing.map<double>((e) => e / _frameLength).average;
   }
 
-  double spectralCentroid() {
-    var yFrame = PaddedFramedList(_fixedData, _frameLength, _hopLength);
-
-    //final spectrogram = <Float64List>[];
-    //var list = yFrame.traverse().map<double>((e) => e.value).toList();
-    // var list = yFrame.toList();
-    // developer.log('list: ' + list.toString());
-
-    // For some fucking motive, this have only the same result when +1 (problem between librosa and scipy)
+  Iterable<double> window() {
+    // This have only the same result than librosa when +1.
+    // Librosa and scipy have the parameter sym, where is True by default - differente from here (issue explaining below)
+    // Issue: https://github.com/librosa/librosa/issues/1510#event-6846800459
     var window = Window.hanning(_frameLength + 1);
-    var windowRounded = Float64List.sublistView(window, 0, 6)
-        .map((e) => (e * 100.0).roundToDouble() / 100.0)
-        .toList();
-    //Needed to round to avoid periodic tithe
-    //.map<double>((e) => (e * 100).round() / 100)
-    //.toList();
-    developer.log('hann win: ' + windowRounded.toString());
+    return Float64List.sublistView(window, 0, _frameLength)
+        .map((e) => (e * 100.0).roundToDouble() / 100.0);
+  }
 
-    final fft = FFT(_frameLength);
-
-    // final stft = STFT(_frameLength, window);
-    // var list = yFrame.traverse().map<double>((e) => e.value).toList();
-    // stft.run(list, (Float64x2List freq) {
-    //   //spectrogram.add(freq.magnitudes()); //.discardConjugates().magnitudes());
-    //   developer.log('spectrogram: ' + freq.magnitudes().toString());
-    // });
-
-    // var list = yFrame.traverse().map<double>((e) => e.value).toList();
-    // teste(list, window, fft, (Float64x2List freq) {
-    //   //spectrogram.add(freq.magnitudes()); //.discardConjugates().magnitudes());
-    //   developer.log('spectrogram: ' + freq.magnitudes().toString());
-    // }, _hopLength);
-
-    var stftMatrix = yFrame.traverse().map<double>((element) {
-      var value = element.value * windowRounded[element.frameIndex];
-      return value;
-    }).toList();
-
-    developer.log('stftMatrix: ' + stftMatrix.toString());
-
-    final fft2 = FFT(stftMatrix.length);
-    var fftMatrix = fft2.realFft(stftMatrix);
-
-    developer.log('fftMatrix: ' + fftMatrix.magnitudes().toString());
-
-    var comp = const Complex(1.375, -1.9485571);
-    developer.log('cpxAbs: ' + comp.abs().toString());
-
-    var cached = <int, Complex>{};
+  /// Reimplemantation of Librosa/Numpy Fast Fourier Transform: https://numpy.org/doc/stable/reference/generated/numpy.fft.fft.html#numpy.fft.fft
+  Iterable<double> fft() {
+    // No need for cache. Small footprint.
+    var yFrame = PaddedFramedList(_fixedData, _frameLength, _hopLength);
 
     // Soma e multiplicação de números complexos
     //https://www.ufrgs.br/reamat/TransformadasIntegrais/livro-af/rdnceft-nx00fameros_complexos_e_fx00f3rmula_de_euler.html
     var N = _frameLength;
     var n = (N ~/ 2 + 1);
     var compList = List<Complex>.filled(n * N, Complex.zero, growable: false);
+
     for (int k = 0; k < n; k++) {
       yFrame.traverse().forEach((element) {
         var m = element.frameIndex;
         var pos = m * k;
-        var c1 = cached[pos];
+        var c1 = _cachedSenoids[pos];
         if (c1 == null) {
           // e^(-2i*pi*m*k/N) -> euller -> e^(ix) = cos(x) + i*sin(x)
           var exponent = -2 * pi * pos / N;
           c1 = Complex(cos(exponent), sin(exponent));
-          cached[pos] = c1;
+          _cachedSenoids[pos] = c1;
         }
-        var a2 = element.value * windowRounded[element.frameIndex];
+        var a2 = element.value * _cachedWindow[element.frameIndex];
         //var c2 = Complex(a2, 0);
         compList[k * _frameLength + element.colIndex] += (c1 * a2);
       });
     }
 
-    developer.log('compList: ' + compList.toString());
-    developer.log('compList abs: ' +
-        compList.map<double>((c) => c.abs()).toList().toString());
+    return compList.map<double>((c) => c.abs());
+  }
 
-    // for (int index = 0; index < stftMatrix.length; index += _frameLength) {
-    //   var fromStft = stftMatrix.skip(index).take(_frameLength).toList();
-    //   var realFft = fft.realFft(fromStft);
-    //   developer.log('realFft from $fromStft to ${realFft.toRealArray()}');
-    // }
+  Future<double> spectralCentroid() async {
+    final Directory directory = await getApplicationDocumentsDirectory();
+    final File file = File('${directory.path}/fft_test_data.txt');
+    file.writeAsStringSync(_cachedFft.toString());
 
-    // var iterator = yFrame.traverse().iterator;
-    // while (iterator.moveNext()) {
-    //   var chunk =
-    //       Float64x2List.fromList(List<double>.generate(_frameLength, (index) {
-    //     var current = iterator.current;
-    //     iterator.moveNext();
-    //     return current.value;
-    //   }).map<Float64x2>((e) => Float64x2(e, 0)).toList());
-
-    //   //window.inPlaceApplyWindow(chunk);
-    //   //fft.inPlaceFft(chunk);
-
-    //   developer.log('spectrogram - my chunks: ' + chunk.toString());
-    // }
-
-    //developer.log('spectrogram: ' + spectrogram.toString());
+    developer.log("fft: len=${_cachedFft.length}; avg=${_cachedFft.average}");
 
     return 0.0;
   }
@@ -182,7 +138,9 @@ class PaddedFramedList extends Iterable<double> {
   double _startPadFill = 0.0;
   double _endPadFill = 0.0;
 
+  @override
   int get length => _length;
+
   int get frameLength => _frameLength;
   int get hopLength => _hopLength;
   int get cols => _cols;

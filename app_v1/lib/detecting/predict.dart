@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:chaquopy/chaquopy.dart';
 import 'package:flutter/material.dart';
 // import 'package:pytorch_mobile/enums/dtype.dart';
 // import 'package:pytorch_mobile/model.dart';
@@ -12,6 +13,8 @@ import 'package:sklite/SVM/SVM.dart';
 // ignore: import_of_legacy_library_into_null_safe
 import 'package:sklite/utils/io.dart';
 import 'dart:developer' as developer;
+
+import '../recording/audio_engineering.dart';
 
 /// Example app.
 class PredictionWidget extends StatefulWidget {
@@ -37,6 +40,19 @@ class _PredictionWidgetState extends State<PredictionWidget> {
 
     //Model customModel = await PyTorchMobile.loadModel(assetPath);
     //var customModel = loadModel(assetPath);
+
+    final _result = await Chaquopy.executeCode("print('oi!');");
+    developer.log('result: ' + _result['textOutputOrError']);
+
+    AudioEngineering test =
+        AudioEngineering(await AudioEngineering.getTestData());
+    // AudioEngineering(<double>[-1, -2, -3, -4, 0, 6, 7, -8, 9, 9],
+    //     frameLength: 6, hopLength: 2);
+
+    //developer.log("zcr:" + test.zeroCrossingRate().toString());
+    //developer.log("rms:" + test.rootMeanSquare().toString());
+    developer
+        .log("spectral_centroid:" + await test.spectralCentroid().toString());
 
     loadModel(assetPath).then((x) {
       var svc = SVC.fromMap(json.decode(x));

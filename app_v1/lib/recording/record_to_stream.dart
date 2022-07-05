@@ -20,12 +20,12 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
-import 'package:ninando/recording/audio_engineering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'dart:developer' as developer;
 import 'batch_transformer.dart';
 
 /*
@@ -168,11 +168,6 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
     final Directory directory = await getApplicationDocumentsDirectory();
     final File file = File('${directory.path}/float_data_from_device.txt');
 
-    AudioEngineering test =
-        //AudioEngineering(await AudioEngineering.getTestData());
-        AudioEngineering(<double>[-1, -2, -3, -4, 0, 6, 7, -8, 9, 9],
-            frameLength: 6, hopLength: 2);
-
     _mRecordingDataSubscription = recordingDataController.stream
         .transform(batchTransformer)
         .listen((event) {
@@ -182,10 +177,6 @@ class _RecordToStreamExampleState extends State<RecordToStreamExample> {
           event.length.toString() +
           ", take 100: " +
           event.take(100).toString());
-
-      //developer.log("zcr:" + test.zeroCrossingRate().toString());
-      //developer.log("rms:" + test.rootMeanSquare().toString());
-      developer.log("spectral_centroid:" + test.spectralCentroid().toString());
     });
 
     await _mRecorder!.startRecorder(
