@@ -1,6 +1,7 @@
 from librosa_wrapper import zero_crossing_rate, mfcc, spectral_centroid, spectral_rolloff, spectral_bandwidth, rms
 import soundfile as sf
 import numpy as np
+import sys
 
 DEFAULT_FRAME_SIZE = 512
 
@@ -32,4 +33,5 @@ def extract_features(file_name_and_tick):
 
     mean_feat = np.mean(concat_feat, axis=1, keepdims=True).transpose()
 
-    return mean_feat
+    np.savetxt(sys.stdout, mean_feat.ravel(), newline=' ')
+    #return np.array_str(mean_feat.ravel())

@@ -1,76 +1,29 @@
-/*
- * Copyright 2018, 2019, 2020, 2021 Dooboolab.
- *
- * This file is part of Flutter-Sound.
- *
- * Flutter-Sound is free software: you can redistribute it and/or modify
- * it under the terms of the Mozilla Public License version 2 (MPL2.0),
- * as published by the Mozilla organization.
- *
- * Flutter-Sound is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * MPL General Public License for more details.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- */
-
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
-// import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
-import 'package:path_provider/path_provider.dart';
-// import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-// import 'batch_transformer.dart';
 
-/*
- * This is an example showing how to record to a Dart Stream.
- * It writes all the recorded data from a Stream to a File, which is completely stupid:
- * if an App wants to record something to a File, it must not use Streams.
- *
- * The real interest of recording to a Stream is for example to feed a
- * Speech-to-Text engine, or for processing the Live data in Dart in real time.
- *
- */
-
-///
 const int tSampleRate = 44100;
 const int tBitRate = 16000;
 typedef _Fn = void Function();
 
-/// Example app.
+/// Recorder Widget
 class RecordToStream extends StatefulWidget {
-  // late final Directory analysisPoolDirectory = () {
-  //   var userHome =
-  //       Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
-  //   return Directory(userHome!).createTempSync("analysisPool_");
-  // }();
+  Future<StreamSubscription<Food>> Function(StreamController<Food>, int)
+      onNewRecordingSubscription;
 
-  late final Future<String> sinkFile = () async {
-    var tempDir = await getTemporaryDirectory();
-    //var tempDir = await getApplicationDocumentsDirectory();
-    var suffix =
-        DateTime.now().toIso8601String().replaceAll(RegExp(r'[:\.]'), '_');
-    return '${tempDir.path}/flutter_sound_realtime_$suffix.pcm';
-  }();
+  RecordToStream({Key? key, required this.onNewRecordingSubscription})
+      : super(key: key);
 
   @override
   _RecordToStreamState createState() => _RecordToStreamState();
 }
 
 class _RecordToStreamState extends State<RecordToStream> {
-  // FlutterSoundPlayer? _mPlayer = FlutterSoundPlayer();
   FlutterSoundRecorder? _mRecorder = FlutterSoundRecorder();
-  // bool _mPlayerIsInited = false;
   bool _mRecorderIsInited = false;
-  // bool _mplaybackReady = false;
-  // String? _mPath;
   StreamSubscription? _mRecordingDataSubscription;
   StreamSubscription<RecordingDisposition>? _mRecordingProgressSubscription;
 
@@ -126,81 +79,32 @@ class _RecordToStreamState extends State<RecordToStream> {
 
   @override
   void initState() {
-    // Timer.periodic(const Duration(seconds: 1), (timer) {
-    //   setState(
-    //       () {}); // Só pra forçar atualização, pois não quero pra cada fluxo de dados
-    // });
-
     super.initState();
-    // Be careful : openAudioSession return a Future.
-    // Do not access your FlutterSoundPlayer or FlutterSoundRecorder before the completion of the Future
-    // _mPlayer!.openAudioSession().then((value) {
-    //   setState(() {
-    //     _mPlayerIsInited = true;
-    //   });
-    // });
-    _openRecorder(); //.then((value) => _registerEvents());
+
+    _openRecorder();
   }
 
   @override
   void dispose() {
-    // stopPlayer();
-    // _mPlayer!.closeAudioSession();
-    // _mPlayer = null;
-
     stopRecorder();
     _mRecorder!.closeAudioSession();
     _mRecorder = null;
 
-    _mRecordingDataSubscription!.cancel();
+    _mRecordingDataSubscription?.cancel();
     _mRecordingDataSubscription = null;
-    _mRecordingProgressSubscription!.cancel();
+    _mRecordingProgressSubscription?.cancel();
     _mRecordingProgressSubscription = null;
 
     super.dispose();
   }
 
-  Future<IOSink> createSink() async {
-    var outputFile = File(await widget.sinkFile);
-    return outputFile.openWrite(mode: FileMode.writeOnly);
-  }
-
-  // ----------------------  Here is the code to record to a Stream ------------
-
   Future<void> record() async {
-    //assert(_mRecorderIsInited && _mPlayer!.isStopped);
     assert(_mRecorderIsInited);
 
-    var sink = await createSink();
-
     var recordingDataController = StreamController<Food>();
-    // var batchTransformer =
-    //     BatchTransformer(sampleRate: tSampleRate, seconds: 1);
 
-    // int dataSize = 0;
-    // int dataLimit = tSampleRate * 1 * 2; // 1 segundo (2 = int8=>16)
-
-    _mRecordingDataSubscription =
-        recordingDataController.stream.listen((buffer) {
-      if (buffer is FoodData) {
-        sink.add(buffer.data!);
-        // dataSize += buffer.data!.lengthInBytes;
-        // if (dataSize > dataLimit) {
-        //   await sink.flush(); // Melhorar a identificação do flush
-        // }
-      }
-    });
-
-    // _mRecordingDataSubscription = recordingDataController.stream
-    //     .transform(batchTransformer)
-    //     .listen((event) {
-    //   var directory = widget.analysisPoolDirectory;
-    //   var fileName =
-    //       DateTime.now().toIso8601String().replaceAll(RegExp(r'[:\.]'), "_");
-    //   var file = File("${directory.path}/$fileName.pcm");
-    //   file.writeAsBytesSync(event);
-    //   developer.log("NewFile: $file");
-    // });
+    _mRecordingDataSubscription = await widget.onNewRecordingSubscription
+        .call(recordingDataController, tSampleRate);
 
     await _mRecorder!.startRecorder(
         toStream: recordingDataController.sink,
@@ -211,26 +115,15 @@ class _RecordToStreamState extends State<RecordToStream> {
 
     setState(() {});
   }
-  // --------------------- (it was very simple, wasn't it ?) -------------------
 
   Future<void> stopRecorder() async {
     await _mRecorder!.stopRecorder();
-    if (_mRecordingDataSubscription != null) {
-      await _mRecordingDataSubscription!.cancel();
-      _mRecordingDataSubscription = null;
-    }
-    //widget.analysisPoolDirectory.deleteSync(recursive: true);
-    // widget.analysisPoolDirectory
-    //     .rename("${widget.analysisPoolDirectory.path}_stopped");
 
-    var fileName = await widget.sinkFile;
-    File(fileName).rename(fileName + '_stopped');
-
-    // _mplaybackReady = true;
+    await _mRecordingDataSubscription?.cancel();
+    _mRecordingDataSubscription = null;
   }
 
   _Fn? getRecorderFn() {
-    //if (!_mRecorderIsInited || !_mPlayer!.isStopped) {
     if (!_mRecorderIsInited) {
       return null;
     }
@@ -240,39 +133,6 @@ class _RecordToStreamState extends State<RecordToStream> {
             stopRecorder().then((value) => setState(() {}));
           };
   }
-
-  // void play() async {
-  //   assert(_mPlayerIsInited &&
-  //       _mplaybackReady &&
-  //       _mRecorder!.isStopped &&
-  //       _mPlayer!.isStopped);
-  //   await _mPlayer!.startPlayer(
-  //       fromURI: _mPath,
-  //       sampleRate: tSampleRate,
-  //       codec: Codec.pcm16,
-  //       numChannels: 1, // Mono
-  //       whenFinished: () {
-  //         setState(() {});
-  //       }); // The readability of Dart is very special :-(
-  //   setState(() {});
-  // }
-
-  // Future<void> stopPlayer() async {
-  //   await _mPlayer!.stopPlayer();
-  // }
-
-  // _Fn? getPlaybackFn() {
-  //   if (!_mPlayerIsInited || !_mplaybackReady || !_mRecorder!.isStopped) {
-  //     return null;
-  //   }
-  //   return _mPlayer!.isStopped
-  //       ? play
-  //       : () {
-  //           stopPlayer().then((value) => setState(() {}));
-  //         };
-  // }
-
-  // ----------------------------------------------------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {

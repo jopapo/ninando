@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "flutter",
+			"command": "flutter",
+			"options": {"cwd": "${workspaceFolder}/app_v1"},
+			"args": [
+				"build",
+				"apk",
+				"--no-sound-null-safety",
+			],
+			"group": "build",
+			"problemMatcher": [],
+			"label": "flutter: flutter build apk",
+			"detail": "app_v1"
+		}
+	]
+}

@@ -36,7 +36,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
-    RecordToStream recorder = RecordToStream();
+    PredictionWidget predictor = PredictionWidget();
     return Scaffold(
       //backgroundColor: Colors.black87,
       appBar: AppBar(
@@ -47,7 +47,9 @@ class _MyHomePageState extends State<MyHomePage> {
         children: <Widget>[
           SizedBox(
             height: 80,
-            child: recorder,
+            child: RecordToStream(
+                onNewRecordingSubscription:
+                    predictor.onNewRecordingSubscription),
           ),
           SizedBox(
             height: 80,
@@ -55,7 +57,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           SizedBox(
             height: 80,
-            child: PredictionWidget(sinkFile: recorder.sinkFile),
+            child: predictor,
           ),
         ],
       ),
