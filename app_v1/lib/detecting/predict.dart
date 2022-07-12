@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:chaquopy/chaquopy.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/public/tau.dart';
+import 'package:ninando/recording/audio_engineering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:developer' as developer;
 
@@ -128,7 +129,7 @@ class PredictionWidget extends StatefulWidget {
             data.length, (index) => double.parse(data[index]));
 
         return _customModel.then((svc) {
-          return svc.predict(means);
+          return svc.predict(means.standardScale());
         });
       }
 

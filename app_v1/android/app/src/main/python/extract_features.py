@@ -8,9 +8,8 @@ DEFAULT_FRAME_SIZE = 512
 def extract_features(file_name_and_tick):
     (file_name, tick) = file_name_and_tick.split("|")
 
-    #with open(file_name, 'rb') as f:
     sr = 44100
-    with sf.SoundFile(file_name, mode='rb', samplerate=44100, channels=1, subtype='PCM_16', format='RAW') as sf_desc:
+    with sf.SoundFile(file_name, samplerate=44100, channels=1, subtype='PCM_16', format='RAW') as sf_desc:
         sr_native = sf_desc.samplerate
         sf_desc.seek(int(tick) * sr_native)
         frame_duration = sr_native * 5 # 5 seconds

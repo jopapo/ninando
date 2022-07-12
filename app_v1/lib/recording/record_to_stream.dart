@@ -42,7 +42,8 @@ class _RecordToStreamState extends State<RecordToStream> {
       throw RecordingPermissionException('Microphone permission not granted');
     }
 
-    await _mRecorder!.openAudioSession();
+    await _mRecorder!.openAudioSession(
+        category: SessionCategory.ambient, mode: SessionMode.modeSpokenAudio);
 
     // final session = await AudioSession.instance;
     // await session.configure(AudioSessionConfiguration(

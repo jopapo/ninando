@@ -202,3 +202,58 @@ class FrameData {
 }
 
 enum PadMode { edge, zero }
+
+/// https://stackoverflow.com/questions/40758562/can-anyone-explain-me-standardscaler
+extension StandardScaler on List<double> {
+  static final List<double> _featureMeans = [
+    0.049971,
+    0.110803,
+    -311.205094,
+    112.776219,
+    -9.223425,
+    18.414529,
+    -4.045880,
+    3.435483,
+    0.790667,
+    3.239740,
+    1.152651,
+    2.463913,
+    -0.064407,
+    -0.111859,
+    0.114910,
+    2412.593058,
+    6.792487e+03,
+    3.214534e+03
+  ];
+
+  static final List<double> _featureVars = [
+    0.001558,
+    0.007403,
+    8031.033092,
+    1859.978735,
+    1885.003648,
+    247.324044,
+    294.303209,
+    230.088700,
+    199.573403,
+    150.746311,
+    138.797059,
+    105.697523,
+    88.285784,
+    70.155498,
+    65.911219,
+    711495.260635,
+    5.683198e+06,
+    1.362893e+06
+  ];
+
+  List<double> standardScale() {
+    var result = List<double>.generate(
+        length,
+        (index) =>
+            (this[index] - _featureMeans[index]) / sqrt(_featureVars[index]));
+    (length);
+    //developer.log("standardScaler $result");
+    return result;
+  }
+}
