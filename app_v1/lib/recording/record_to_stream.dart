@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:wakelock/wakelock.dart';
 
 const int tSampleRate = 44100;
 const int tBitRate = 16000;
@@ -101,6 +102,9 @@ class _RecordToStreamState extends State<RecordToStream> {
   Future<void> record() async {
     assert(_mRecorderIsInited);
 
+    // Prevent screen from going into sleep mode:
+    Wakelock.enable();
+
     var recordingDataController = StreamController<Food>();
 
     _mRecordingDataSubscription = await widget.onNewRecordingSubscription
@@ -117,6 +121,8 @@ class _RecordToStreamState extends State<RecordToStream> {
   }
 
   Future<void> stopRecorder() async {
+    Wakelock.disable();
+
     await _mRecorder!.stopRecorder();
 
     await _mRecordingDataSubscription?.cancel();
