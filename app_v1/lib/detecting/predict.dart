@@ -6,13 +6,18 @@ import 'package:chaquopy/chaquopy.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/public/tau.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:sklite/SVM/SVM.dart';
-import 'package:sklite/utils/io.dart';
 import 'dart:developer' as developer;
+
+// ignore: import_of_legacy_library_into_null_safe
+import 'package:sklite/SVM/SVM.dart';
+// ignore: import_of_legacy_library_into_null_safe
+import 'package:sklite/utils/io.dart';
 
 /// Widget for prediction
 class PredictionWidget extends StatefulWidget {
   late final Future<SVC> _customModel = loadSvcModel();
+
+  PredictionWidget({Key? key}) : super(key: key);
 
   Future<SVC> loadSvcModel() async {
     var assetPath = "assets/models/svc-1.json";
@@ -21,8 +26,8 @@ class PredictionWidget extends StatefulWidget {
     return svc;
   }
 
-  StreamController<int> onNewPrediction = StreamController<int>();
-  StreamController<File> onRecordingStopped = StreamController();
+  final StreamController<int> onNewPrediction = StreamController<int>();
+  final StreamController<File> onRecordingStopped = StreamController();
 
   Future<File> getNewOutputFile() async {
     var tempDir = await getTemporaryDirectory();

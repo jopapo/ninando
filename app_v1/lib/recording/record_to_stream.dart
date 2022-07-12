@@ -11,10 +11,10 @@ typedef _Fn = void Function();
 
 /// Recorder Widget
 class RecordToStream extends StatefulWidget {
-  Future<StreamSubscription<Food>> Function(StreamController<Food>, int)
+  final Future<StreamSubscription<Food>> Function(StreamController<Food>, int)
       onNewRecordingSubscription;
 
-  RecordToStream({Key? key, required this.onNewRecordingSubscription})
+  const RecordToStream({Key? key, required this.onNewRecordingSubscription})
       : super(key: key);
 
   @override
