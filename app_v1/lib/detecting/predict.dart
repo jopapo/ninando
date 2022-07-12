@@ -1,7 +1,10 @@
 // https://pub.dev/packages/pytorch_mobile
 
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
+// import 'dart:io' show Directory, File, Platform;
 
 import 'package:chaquopy/chaquopy.dart';
 import 'package:flutter/material.dart';
@@ -18,14 +21,64 @@ import '../recording/audio_engineering.dart';
 
 /// Example app.
 class PredictionWidget extends StatefulWidget {
+  // final Directory analysisPoolDirectory;
+  final Future<String> sinkFile;
+
+  const PredictionWidget({Key? key, required this.sinkFile}) : super(key: key);
+
   @override
   _PredictionWidgetState createState() => _PredictionWidgetState();
 }
 
 class _PredictionWidgetState extends State<PredictionWidget> {
+  final List<int> _detectionRange = List<int>.empty(growable: true);
+
   @override
   void initState() {
     super.initState();
+
+    var lastTick = 0;
+
+    Timer.periodic(const Duration(seconds: 1), (timer) async {
+      var file = File(await widget.sinkFile);
+      var tick = timer.tick - lastTick - 5;
+
+      if (file.existsSync()) {
+        if (tick >= 0) {
+          var result = await Chaquopy.executeCode("${file.path}|$tick");
+
+          developer
+              .log("analysisDetected: ${file.path}|$tick; result: $result");
+
+          var textResult = result['textOutputOrError'].toString();
+          if (textResult.startsWith("Error:")) {
+            throw Exception(textResult.substring(6));
+          }
+
+          bool isCry = textResult == "CRY!";
+
+          _detectionRange.add(isCry ? 1 : 0);
+        }
+      } else {
+        _detectionRange.clear();
+        lastTick = timer.tick;
+      }
+
+      setState(() {
+        while (_detectionRange.length > 10) {
+          _detectionRange.removeAt(0);
+        }
+      });
+    });
+
+    // widget.analysisPoolDirectory.watch(events: FileSystemEvent.create).listen(
+    //   detectedNewFileForAnalisys,
+    //   onDone: () {
+    //     setState(() {
+    //       _detectionRange.clear();
+    //     });
+    //   },
+    // );
   }
 
   @override
@@ -33,32 +86,11 @@ class _PredictionWidgetState extends State<PredictionWidget> {
     super.dispose();
   }
 
-  Future<void> _predict() async {
-    //var assetPath = 'assets/models/sample1.pt';
-    var assetPath = "assets/models/svc-1.json";
-    developer.log("Loading model $assetPath");
+  // Future<void> _predict() async {
+  //   await testPy();
 
-    //Model customModel = await PyTorchMobile.loadModel(assetPath);
-    //var customModel = loadModel(assetPath);
-
-    final _result = await Chaquopy.executeCode("print('oi!');");
-    developer.log('result: ' + _result['textOutputOrError']);
-
-    AudioEngineering test =
-        AudioEngineering(await AudioEngineering.getTestData());
-    // AudioEngineering(<double>[-1, -2, -3, -4, 0, 6, 7, -8, 9, 9],
-    //     frameLength: 6, hopLength: 2);
-
-    //developer.log("zcr:" + test.zeroCrossingRate().toString());
-    //developer.log("rms:" + test.rootMeanSquare().toString());
-    developer
-        .log("spectral_centroid:" + await test.spectralCentroid().toString());
-
-    loadModel(assetPath).then((x) {
-      var svc = SVC.fromMap(json.decode(x));
-      predict(svc);
-    });
-  }
+  //   //testAudioEngineering();
+  // }
 
   /// https://stackoverflow.com/questions/40758562/can-anyone-explain-me-standardscaler
   List<double> standardScaler(List<double> values) {
@@ -190,13 +222,77 @@ class _PredictionWidgetState extends State<PredictionWidget> {
           width: 3,
         ),
       ),
-      child: ElevatedButton(
-        onPressed: _predict,
-        //color: Colors.white,
-        //disabledColor: Colors.grey,
-        child: const Text('Predict'),
-      ),
-      //const Text('B'),
+      // child: ElevatedButton(
+      //   onPressed: _predict,
+      //   child: const Text('Predict'),
+      child: Text(_detectionRange.toString()),
     );
+  }
+
+  Future<void> testAudioEngineering() async {
+    //var assetPath = 'assets/models/sample1.pt';
+    var assetPath = "assets/models/svc-1.json";
+    developer.log("Loading model $assetPath");
+
+    //Model customModel = await PyTorchMobile.loadModel(assetPath);
+    //var customModel = loadModel(assetPath);
+
+    testPy();
+
+    testAudioEngineering();
+
+    AudioEngineering test =
+        AudioEngineering(await AudioEngineering.getTestData());
+    // AudioEngineering(<double>[-1, -2, -3, -4, 0, 6, 7, -8, 9, 9],
+    //     frameLength: 6, hopLength: 2);
+
+    //developer.log("zcr:" + test.zeroCrossingRate().toString());
+    //developer.log("rms:" + test.rootMeanSquare().toString());
+    developer.log("spectral_centroid:" + test.spectralCentroid().toString());
+
+    loadModel(assetPath).then((x) {
+      var svc = SVC.fromMap(json.decode(x));
+      predict(svc);
+    });
+  }
+
+  Future<void> testPy() async {
+    var testData = await AudioEngineering.getTestData();
+
+    var userHome =
+        Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+
+    var fileName = "$userHome/test_tad.txt";
+
+    var file = File(fileName);
+    var sink = file.openWrite();
+    for (var element in testData) {
+      sink.writeln(element.toString());
+    }
+    sink.close();
+
+    final _result = await Chaquopy.executeCode(fileName);
+    developer.log('result: ' + _result.toString());
+  }
+
+  Future<void> detectedNewFileForAnalisys(FileSystemEvent event) async {
+    final result = await Chaquopy.executeCode(event.path);
+
+    developer.log("analysisDetected: ${event.path}; result: $result");
+
+    var textResult = result['textOutputOrError'].toString();
+    if (textResult.startsWith("Error:")) {
+      throw Exception(textResult.substring(6));
+    }
+
+    bool isCry = textResult == "CRY!";
+
+    setState(() {
+      _detectionRange.add(isCry ? 1 : 0);
+
+      while (_detectionRange.length > 10) {
+        _detectionRange.removeAt(0);
+      }
+    });
   }
 }

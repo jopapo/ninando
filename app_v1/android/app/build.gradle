@@ -59,12 +59,23 @@ android {
         }
 
         python {
-            buildPython "E:/Apps/Python38/python.exe"
-            buildPython "C:/Windows/py.exe", "-3.10"
+            // Automatic detection "On Windows, it will try py -3.8, then py -3"
+            //buildPython "E:/Apps/Python38/python.exe"
+            //buildPython "C:/Windows/py.exe", "-3.8"
 
             pip {
-                install "librosa"
+                install "numpy"
+                install "soundfile"
+                install "scipy"
+                install "joblib"
+                install "decorator"
+                //install "librosa" # Não funfa
+                // soundfile + numpy + scikit são dependências.
             }
+
+            // pyc {
+            //     src false
+            // }
         }
     }
 

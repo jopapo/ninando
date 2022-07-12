@@ -10,6 +10,8 @@ import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 
 /// Example app.
 class CallNotificatorWidget extends StatefulWidget {
+  const CallNotificatorWidget({Key? key}) : super(key: key);
+
   @override
   _CallNotificatorWidgetState createState() => _CallNotificatorWidgetState();
 }

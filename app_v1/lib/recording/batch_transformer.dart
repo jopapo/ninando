@@ -6,13 +6,13 @@ import 'package:flutter_sound/public/util/flutter_sound_helper.dart';
 
 import 'dart:developer' as developer;
 
-class BatchTransformer implements StreamTransformer<Food, List<double>> {
+class BatchNormTransformer implements StreamTransformer<Food, List<double>> {
   final StreamController<List<double>> _controller =
       StreamController<List<double>>();
   List<double> data = List<double>.empty(growable: true);
   late int tSampleRate;
 
-  BatchTransformer(sampleRate) {
+  BatchNormTransformer(sampleRate) {
     tSampleRate = sampleRate;
   }
 
@@ -45,6 +45,54 @@ class BatchTransformer implements StreamTransformer<Food, List<double>> {
       if (data.isNotEmpty) {
         _controller.add(data);
         data = List<double>.empty(growable: true);
+      }
+    });
+
+    // return an output stream for our listener
+    return _controller.stream;
+  }
+
+  @override
+  StreamTransformer<RS, RT> cast<RS, RT>() {
+    return StreamTransformer.castFrom(this);
+  }
+}
+
+class BatchTransformer implements StreamTransformer<Food, List<int>> {
+  final StreamController<List<int>> _controller = StreamController<List<int>>();
+  List<int> data = List<int>.empty(growable: true);
+
+  late int sampleRate;
+  late int seconds;
+
+  BatchTransformer({required this.sampleRate, required this.seconds});
+
+  @override
+  Stream<List<int>> bind(Stream<Food> stream) {
+    int limits = sampleRate * seconds; // 5s
+
+    stream.listen((buffer) {
+      // Filha da puta! Vem com envelope. Demorei pra cacete pra descobrir.
+      Uint8List pcmBuffer = flutterSoundHelper.waveToPCMBuffer(
+          inputBuffer: (buffer as FoodData).data!);
+      var pcm16 = pcmBuffer.buffer.asInt16List();
+      // asInt16List();
+      int dataTo16Size = data.length;
+      int totalSize = dataTo16Size + pcm16.length;
+      if (totalSize <= limits) {
+        data.addAll(pcm16);
+      } else {
+        int fitSize = limits - dataTo16Size;
+        data.addAll(pcm16.take(fitSize));
+
+        _controller.add(data);
+        data = List<int>.empty(growable: true);
+        data.addAll(pcm16.skip(fitSize));
+      }
+    }).onDone(() {
+      if (data.isNotEmpty) {
+        _controller.add(data);
+        data = List<int>.empty(growable: true);
       }
     });
 

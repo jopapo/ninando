@@ -15,8 +15,8 @@ class AudioEngineering {
   late int _frameLength;
   late int _hopLength;
   final Map<int, Complex> _cachedSenoids = <int, Complex>{};
-  late List<double> _cachedFft = fft().toList();
-  late List<double> _cachedWindow = window().toList();
+  late final List<double> _cachedFft = fft().toList();
+  late final List<double> _cachedWindow = window().toList();
 
   AudioEngineering(Iterable<double> data,
       {int frameLength = 2048, int hopLength = 512}) {
