@@ -1,12 +1,8 @@
 // URL: https://stackoverflow.com/questions/45523370/how-to-make-a-phone-call-from-a-flutter-app
 
-//import 'dart:async';
-//import 'dart:io';
 import 'package:flutter/material.dart';
-//import 'package:flutter_sound/flutter_sound.dart';
-//import 'package:path_provider/path_provider.dart';
-//import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Example app.
 class CallNotificatorWidget extends StatefulWidget {
@@ -23,11 +19,18 @@ class _CallNotificatorWidgetState extends State<CallNotificatorWidget> {
   void initState() {
     super.initState();
 
-    _phoneNumberController = TextEditingController.fromValue(
-      const TextEditingValue(
-        text: '+5547988026050',
-      ),
-    );
+    _phoneNumberController =
+        TextEditingController.fromValue(const TextEditingValue(text: ''));
+
+    SharedPreferences.getInstance().then((instance) {
+      var savedContactPhone = instance.getString("contact-phone");
+      _phoneNumberController.text = savedContactPhone ?? '';
+    });
+  }
+
+  void _contactPhoneChanged(String value) {
+    SharedPreferences.getInstance()
+        .then((instance) => instance.setString("contact-phone", value));
   }
 
   @override
@@ -79,8 +82,8 @@ class _CallNotificatorWidgetState extends State<CallNotificatorWidget> {
             keyboardType: TextInputType.phone,
             //maxLines: null,
             controller: _phoneNumberController,
+            onChanged: _contactPhoneChanged,
           )),
-      //const Text('B'),
     );
   }
 }

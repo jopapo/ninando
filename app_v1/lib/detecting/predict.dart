@@ -49,7 +49,7 @@ class PredictionWidget extends StatefulWidget {
     File? transitionFile;
     IOSink? transitionSink;
     var transitionTotalSize = 0.0;
-    var transitions = 0;
+    //var transitions = 0;
     const transitionThreashold = 60; // 1 minute
 
     var totalSize = 0.0;
@@ -83,8 +83,8 @@ class PredictionWidget extends StatefulWidget {
             }
             if (newStartSecond > transitionThreashold + sampleSeconds) {
               sink.close().then((_) {
-                outputFile.rename(outputFile.path + '_part-${++transitions}');
-                //outputFile.delete();
+                //outputFile.rename(outputFile.path + '_part-${++transitions}');
+                outputFile.delete();
 
                 developer.log(
                     "transitioningFile: ${outputFile.path} -> ${transitionFile!.path}");
@@ -104,8 +104,8 @@ class PredictionWidget extends StatefulWidget {
 
     foodController.onCancel = () {
       sink.close().then((_) {
-        outputFile.rename(outputFile.path + '_stopped');
-        //outputFile.delete();
+        //outputFile.rename(outputFile.path + '_stopped');
+        outputFile.delete();
       });
       onRecordingStopped.add(outputFile);
     };
