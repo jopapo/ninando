@@ -17,8 +17,12 @@ class MyApp extends StatelessWidget {
       //debugShowCheckedModeBanner: false,
       title: 'Ninando',
       theme: ThemeData(
-        primarySwatch: Colors.grey,
+        brightness: Brightness.light,
       ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+      ),
+      themeMode: ThemeMode.dark,
       home: const MyHomePage(title: 'Ninando Home'),
     );
   }
