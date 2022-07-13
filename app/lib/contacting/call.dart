@@ -49,8 +49,12 @@ class _CallNotificatorWidgetState extends State<CallNotificatorWidget> {
     widget.onAlertThreashold.stream.listen((isAlerted) {
       if (isAlerted) {
         history(add: "Choro detectado.");
-        _makeCall().then((value) => history(complement: "Ligação!")).catchError(
-            (onError) => history(complement: "Erro notif.: $onError!"));
+        _makeCall()
+            .then((value) => history(
+                complement:
+                    value.isEmpty ? "Sem notif." : "Ligando para $value!"))
+            .catchError(
+                (onError) => history(complement: "Erro notif.: $onError!"));
       } else {
         history(add: "Choro parou.");
       }
@@ -60,8 +64,6 @@ class _CallNotificatorWidgetState extends State<CallNotificatorWidget> {
   void _contactPhoneChanged(String value) {
     _prefs.then((instance) {
       instance.setString("contact-phone", value);
-      history(
-          add: "Contato alterado para ${value.isEmpty ? '<vazio>' : value}.");
     });
   }
 
@@ -95,13 +97,11 @@ class _CallNotificatorWidgetState extends State<CallNotificatorWidget> {
   }
 
   Widget buildList(BuildContext context) {
-    return SelectableText(
-      _history.join("\n"),
-      toolbarOptions: const ToolbarOptions(copy: true, selectAll: true),
-      showCursor: true,
-      textAlign: TextAlign.left,
-      //maxLines: 15
-    );
+    return SelectableText(_history.join("\n"),
+        toolbarOptions: const ToolbarOptions(copy: true, selectAll: true),
+        showCursor: true,
+        textAlign: TextAlign.left,
+        maxLines: 15);
   }
 
   @override
