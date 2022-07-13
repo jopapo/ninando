@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,7 +19,9 @@ class CallNotificatorWidget extends StatefulWidget {
 }
 
 class _CallNotificatorWidgetState extends State<CallNotificatorWidget> {
-  late TextEditingController _phoneNumberController;
+  late final TextEditingController _phoneNumberController;
+  final List<String> _history = <String>[];
+  late final Future<SharedPreferences> _prefs;
 
   @override
   void initState() {
@@ -27,21 +30,39 @@ class _CallNotificatorWidgetState extends State<CallNotificatorWidget> {
     _phoneNumberController =
         TextEditingController.fromValue(const TextEditingValue(text: ''));
 
-    SharedPreferences.getInstance().then((instance) {
+    _prefs = SharedPreferences.getInstance();
+
+    _prefs.then((instance) {
       var savedContactPhone = instance.getString("contact-phone");
       _phoneNumberController.text = savedContactPhone ?? '';
+
+      var storedHistory = instance.getStringList("history");
+      if (storedHistory != null && storedHistory.isNotEmpty) {
+        setState(() {
+          _history.addAll(storedHistory);
+        });
+      } else {
+        history(add: "Primeira execução.");
+      }
     });
 
     widget.onAlertThreashold.stream.listen((isAlerted) {
       if (isAlerted) {
-        _makeCall();
+        history(add: "Choro detectado.");
+        _makeCall().then((value) => history(complement: "Ligação!")).catchError(
+            (onError) => history(complement: "Erro notif.: $onError!"));
+      } else {
+        history(add: "Choro parou.");
       }
     });
   }
 
   void _contactPhoneChanged(String value) {
-    SharedPreferences.getInstance()
-        .then((instance) => instance.setString("contact-phone", value));
+    _prefs.then((instance) {
+      instance.setString("contact-phone", value);
+      history(
+          add: "Contato alterado para ${value.isEmpty ? '<vazio>' : value}.");
+    });
   }
 
   @override
@@ -51,9 +72,36 @@ class _CallNotificatorWidgetState extends State<CallNotificatorWidget> {
     super.dispose();
   }
 
-  Future<bool?> _makeCall() {
+  Future<String> _makeCall() async {
     String phoneNumber = _phoneNumberController.text;
-    return FlutterPhoneDirectCaller.callNumber(phoneNumber);
+    if (phoneNumber.isNotEmpty) {
+      return FlutterPhoneDirectCaller.callNumber(phoneNumber)
+          .then((value) => value == true ? phoneNumber : '');
+    }
+    return '';
+  }
+
+  void history({String? add, String? complement}) {
+    var dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
+    setState(() {
+      if (add != null) {
+        _history.insert(0, "${dateFormat.format(DateTime.now())} - $add");
+      }
+      if (complement != null) {
+        _history.first += " $complement";
+      }
+    });
+    _prefs.then((instance) => instance.setStringList("history", _history));
+  }
+
+  Widget buildList(BuildContext context) {
+    return SelectableText(
+      _history.join("\n"),
+      toolbarOptions: const ToolbarOptions(copy: true, selectAll: true),
+      showCursor: true,
+      textAlign: TextAlign.left,
+      //maxLines: 15
+    );
   }
 
   @override
@@ -64,36 +112,51 @@ class _CallNotificatorWidgetState extends State<CallNotificatorWidget> {
   }
 
   Widget _body() {
-    return Container(
-      margin: const EdgeInsets.all(3),
-      padding: const EdgeInsets.all(3),
-      height: 80,
-      width: double.infinity,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Colors.indigo,
-          width: 3,
+    return Column(children: [
+      Container(
+        margin: const EdgeInsets.all(3),
+        padding: const EdgeInsets.all(3),
+        height: 80,
+        width: double.infinity,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Colors.indigo,
+            width: 3,
+          ),
         ),
-      ),
-      child: ConstrainedBox(
-          constraints: BoxConstraints.tight(const Size(200, 50)),
-          child: TextFormField(
-            decoration: InputDecoration(
-              //border: InputBorder.none,
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.call),
-                onPressed: _makeCall,
-                color: Colors.indigo,
+        child: ConstrainedBox(
+            constraints: BoxConstraints.tight(const Size(200, 50)),
+            child: TextFormField(
+              decoration: InputDecoration(
+                //border: InputBorder.none,
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.call),
+                  onPressed: _makeCall,
+                  color: Colors.indigo,
+                ),
+                labelText: 'Phone to call:',
               ),
-              labelText: 'Phone to call:',
+              //autofocus: true,
+              keyboardType: TextInputType.phone,
+              //maxLines: null,
+              controller: _phoneNumberController,
+              onChanged: _contactPhoneChanged,
+            )),
+      ),
+      Column(children: [
+        Container(
+            margin: const EdgeInsets.all(3),
+            padding: const EdgeInsets.all(3),
+            width: double.infinity,
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: Colors.indigo,
+                width: 3,
+              ),
             ),
-            //autofocus: true,
-            keyboardType: TextInputType.phone,
-            //maxLines: null,
-            controller: _phoneNumberController,
-            onChanged: _contactPhoneChanged,
-          )),
-    );
+            child: buildList(context))
+      ]),
+    ]);
   }
 }

@@ -46,7 +46,7 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: ListView(
+      body: Column(
         //mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           SizedBox(
@@ -57,12 +57,11 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           SizedBox(
             height: 80,
+            child: predictor,
+          ),
+          Expanded(
             child: CallNotificatorWidget(
                 onAlertThreashold: predictor.onAlertThreashold),
-          ),
-          SizedBox(
-            height: 80,
-            child: predictor,
           ),
         ],
       ),
