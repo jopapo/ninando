@@ -28,7 +28,8 @@ class PredictionWidget extends StatefulWidget {
   }
 
   final StreamController<int> onNewPrediction = StreamController<int>();
-  final StreamController<File> onRecordingStopped = StreamController();
+  final StreamController<File> onRecordingStopped = StreamController<File>();
+  final StreamController<bool> onAlertThreashold = StreamController<bool>();
 
   Future<File> getNewOutputFile() async {
     var tempDir = await getTemporaryDirectory();
@@ -143,6 +144,9 @@ class PredictionWidget extends StatefulWidget {
 
 class _PredictionWidgetState extends State<PredictionWidget> {
   final List<int> _detectionRange = List<int>.empty(growable: true);
+  int alertLevel = 0;
+  int silenceCount = 0;
+  final int alertThreashold = 3;
 
   @override
   void initState() {
@@ -150,6 +154,20 @@ class _PredictionWidgetState extends State<PredictionWidget> {
 
     widget.onNewPrediction.stream.listen((prediction) {
       _detectionRange.add(prediction);
+
+      var wasAlerted = alertLevel >= alertThreashold;
+      if (prediction > 0) {
+        alertLevel++;
+        silenceCount = 0;
+      } else {
+        silenceCount++;
+        if (silenceCount > 10) alertLevel = 0;
+      }
+
+      var isAlerted = alertLevel >= alertThreashold;
+      if (wasAlerted != isAlerted) {
+        widget.onAlertThreashold.add(isAlerted);
+      }
 
       setState(() {
         while (_detectionRange.length > 10) {
@@ -191,7 +209,10 @@ class _PredictionWidgetState extends State<PredictionWidget> {
           width: 3,
         ),
       ),
-      child: Text(_detectionRange.toString()),
+      child: Text("$_detectionRange - #$alertLevel",
+          style: alertLevel >= alertThreashold
+              ? const TextStyle(color: Colors.red)
+              : null),
     );
   }
 }

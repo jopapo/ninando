@@ -51,9 +51,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 onNewRecordingSubscription:
                     predictor.onNewRecordingSubscription),
           ),
-          const SizedBox(
+          SizedBox(
             height: 80,
-            child: CallNotificatorWidget(),
+            child: CallNotificatorWidget(
+                onAlertThreashold: predictor.onAlertThreashold),
           ),
           SizedBox(
             height: 80,

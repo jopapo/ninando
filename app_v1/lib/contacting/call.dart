@@ -1,12 +1,18 @@
 // URL: https://stackoverflow.com/questions/45523370/how-to-make-a-phone-call-from-a-flutter-app
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:developer' as developer;
 
 /// Example app.
 class CallNotificatorWidget extends StatefulWidget {
-  const CallNotificatorWidget({Key? key}) : super(key: key);
+  final StreamController<bool> onAlertThreashold;
+
+  const CallNotificatorWidget({Key? key, required this.onAlertThreashold})
+      : super(key: key);
 
   @override
   _CallNotificatorWidgetState createState() => _CallNotificatorWidgetState();
@@ -26,6 +32,12 @@ class _CallNotificatorWidgetState extends State<CallNotificatorWidget> {
       var savedContactPhone = instance.getString("contact-phone");
       _phoneNumberController.text = savedContactPhone ?? '';
     });
+
+    widget.onAlertThreashold.stream.listen((isAlerted) {
+      if (isAlerted) {
+        _makeCall();
+      }
+    });
   }
 
   void _contactPhoneChanged(String value) {
@@ -40,9 +52,9 @@ class _CallNotificatorWidgetState extends State<CallNotificatorWidget> {
     super.dispose();
   }
 
-  Future<void> _makeCall() async {
+  Future<bool?> _makeCall() {
     String phoneNumber = _phoneNumberController.text;
-    await FlutterPhoneDirectCaller.callNumber(phoneNumber);
+    return FlutterPhoneDirectCaller.callNumber(phoneNumber);
   }
 
   @override
