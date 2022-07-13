@@ -5,22 +5,22 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "app_v1",
-            "cwd": "app_v1",
+            "name": "app",
+            "cwd": "app",
             "request": "launch",
             "toolArgs": ["--no-sound-null-safety"],
             "type": "dart"
         },
         {
-            "name": "app_v1 (profile mode)",
-            "cwd": "app_v1",
+            "name": "app (profile mode)",
+            "cwd": "app",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile"
         },
         {
-            "name": "app_v1 (release mode)",
-            "cwd": "app_v1",
+            "name": "app (release mode)",
+            "cwd": "app",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"
