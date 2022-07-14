@@ -10,8 +10,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Example app.
 class CallNotificatorWidget extends StatefulWidget {
   final StreamController<bool> onAlertThreashold;
+  final StreamController<bool> onRecordToggle;
 
-  const CallNotificatorWidget({Key? key, required this.onAlertThreashold})
+  const CallNotificatorWidget(
+      {Key? key, required this.onAlertThreashold, required this.onRecordToggle})
       : super(key: key);
 
   @override
@@ -59,6 +61,9 @@ class _CallNotificatorWidgetState extends State<CallNotificatorWidget> {
         history(add: "Choro parou.");
       }
     });
+
+    widget.onRecordToggle.stream.listen((isRecording) =>
+        history(add: isRecording ? "Detecção iniciada." : "Detecção pausada"));
   }
 
   void _contactPhoneChanged(String value) {

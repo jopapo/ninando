@@ -15,7 +15,9 @@ class RecordToStream extends StatefulWidget {
   final Future<StreamSubscription<Food>> Function(StreamController<Food>, int)
       onNewRecordingSubscription;
 
-  const RecordToStream({Key? key, required this.onNewRecordingSubscription})
+  final StreamController<bool> onRecordToggle = StreamController<bool>();
+
+  RecordToStream({Key? key, required this.onNewRecordingSubscription})
       : super(key: key);
 
   @override
@@ -99,6 +101,8 @@ class _RecordToStreamState extends State<RecordToStream> {
         sampleRate: tSampleRate,
         bitRate: tBitRate);
 
+    widget.onRecordToggle.add(true);
+
     setState(() {});
   }
 
@@ -109,6 +113,8 @@ class _RecordToStreamState extends State<RecordToStream> {
 
     await _mRecordingDataSubscription?.cancel();
     _mRecordingDataSubscription = null;
+
+    widget.onRecordToggle.add(false);
   }
 
   _Fn? getRecorderFn() {

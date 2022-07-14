@@ -40,7 +40,10 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
-    PredictionWidget predictor = PredictionWidget();
+    var predictor = PredictionWidget();
+    var recorder = RecordToStream(
+        onNewRecordingSubscription: predictor.onNewRecordingSubscription);
+
     return Scaffold(
       //backgroundColor: Colors.black87,
       appBar: AppBar(
@@ -51,9 +54,7 @@ class _MyHomePageState extends State<MyHomePage> {
         children: <Widget>[
           SizedBox(
             height: 80,
-            child: RecordToStream(
-                onNewRecordingSubscription:
-                    predictor.onNewRecordingSubscription),
+            child: recorder,
           ),
           SizedBox(
             height: 80,
@@ -61,7 +62,8 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           Expanded(
             child: CallNotificatorWidget(
-                onAlertThreashold: predictor.onAlertThreashold),
+                onAlertThreashold: predictor.onAlertThreashold,
+                onRecordToggle: recorder.onRecordToggle),
           ),
         ],
       ),
