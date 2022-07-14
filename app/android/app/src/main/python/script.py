@@ -1,9 +1,6 @@
-import extract_features
-import traceback
+import threading,extract_features
 
-#   This is the code to run Text functions...
 def mainTextCode(code):
-    try:
-        extract_features.extract_features(code)
-    except Exception:
-        traceback.print_exc()
+
+    thread = threading.Thread(target=extract_features.monitor_file, args=(code,),daemon=True)
+    thread.start()

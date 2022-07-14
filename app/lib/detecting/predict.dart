@@ -18,7 +18,14 @@ import 'package:sklite/utils/io.dart';
 class PredictionWidget extends StatefulWidget {
   late final Future<SVC> _customModel = loadSvcModel();
 
-  PredictionWidget({Key? key}) : super(key: key);
+  PredictionWidget({Key? key}) : super(key: key) {
+    getDefaultOutputDir().then((dir) {
+      dir
+          .watch(events: FileSystemEvent.create, recursive: false)
+          .where((file) => file.path.endsWith(".tick"))
+          .listen(predictFile);
+    });
+  }
 
   Future<SVC> loadSvcModel() async {
     var assetPath = "assets/models/svc-1.json";
@@ -28,102 +35,112 @@ class PredictionWidget extends StatefulWidget {
   }
 
   final StreamController<int> onNewPrediction = StreamController<int>();
-  final StreamController<File> onRecordingStopped = StreamController<File>();
+  final StreamController<bool> onRecordingToggled = StreamController<bool>();
   final StreamController<bool> onAlertThreashold = StreamController<bool>();
 
+  Future<Directory> getDefaultOutputDir() async {
+    return getTemporaryDirectory().then((tmpDir) {
+      return Directory("${tmpDir.path}/flutter_sound_realtime")
+          .create(recursive: true);
+    });
+  }
+
   Future<File> getNewOutputFile() async {
-    var tempDir = await getTemporaryDirectory();
-    var suffix =
-        DateTime.now().toIso8601String().replaceAll(RegExp(r'[:\.]'), '_');
-    var sinkFile = '${tempDir.path}/flutter_sound_realtime_$suffix.pcm';
+    return getDefaultOutputDir().then((dir) {
+      var suffix =
+          DateTime.now().toIso8601String().replaceAll(RegExp(r'[:\.]'), '_');
+      var sinkFile = '${dir.path}/$suffix.pcm';
 
-    var outputFile = File(sinkFile);
+      var outputFile = File(sinkFile);
 
-    return outputFile;
+      return outputFile;
+    });
   }
 
   Future<StreamSubscription<Food>> onNewRecordingSubscription(
       StreamController<Food> foodController, int sampleRate) async {
-    var outputFile = await getNewOutputFile();
-    var sink = outputFile.openWrite(mode: FileMode.writeOnly);
+    onRecordingToggled.add(true);
+
+    var totalSize = 0.0;
+    var fullSampleRate = sampleRate * 2; // for the seconds calculation
+    const sampleSeconds = 5;
+    var lastStartSecond = -1;
 
     File? transitionFile;
     IOSink? transitionSink;
+
     var transitionTotalSize = 0.0;
-    //var transitions = 0;
-    const transitionThreashold = 60; // 1 minute
+    var transitions = 0;
+    const transitionThreashold = 60 * 10 - sampleSeconds; // 10 minutes
 
-    var totalSize = 0.0;
-    var lastStartSecond = -1;
-    var fullSampleRate = sampleRate * 2; // for the seconds calculation
-    const sampleSeconds = 5;
+    var outputFile = await getNewOutputFile();
+    var sink = outputFile.openWrite(mode: FileMode.writeOnly);
 
-    var subscription = foodController.stream.listen(
-      (buffer) {
-        sink.add((buffer as FoodData).data!);
-        transitionSink?.add(buffer.data!);
-        totalSize += buffer.data!.length;
-        transitionTotalSize += buffer.data!.length;
-        var newStartSecond = (totalSize ~/ fullSampleRate) -
-            sampleSeconds; // Need to be always 5 seconds behind
-        if (newStartSecond > lastStartSecond) {
-          lastStartSecond = newStartSecond;
+    Chaquopy.executeCode(outputFile.path); // parallel execution
 
-          predict(outputFile, newStartSecond)
-              .then((prediction) => onNewPrediction.add(prediction));
+    var subscription = foodController.stream.listen((buffer) {
+      sink.add((buffer as FoodData).data!);
+      transitionSink?.add(buffer.data!);
 
-          // Começa um novo arquivo a cada 1 minuto pra evitar estouro de disco
-          if (newStartSecond >= transitionThreashold) {
-            if (newStartSecond == transitionThreashold) {
-              getNewOutputFile().then((newFile) {
-                transitionTotalSize = 0;
-                transitionFile = newFile;
-                transitionSink =
-                    transitionFile!.openWrite(mode: FileMode.writeOnly);
-              });
-            }
-            if (newStartSecond > transitionThreashold + sampleSeconds) {
-              sink.close().then((_) {
-                //outputFile.rename(outputFile.path + '_part-${++transitions}');
-                outputFile.delete();
+      totalSize += buffer.data!.length;
+      transitionTotalSize += buffer.data!.length;
+      var newStartSecond = (totalSize ~/ fullSampleRate) -
+          sampleSeconds; // Need to be always 5 seconds behind
 
-                developer.log(
-                    "transitioningFile: ${outputFile.path} -> ${transitionFile!.path}");
+      if (newStartSecond > lastStartSecond) {
+        lastStartSecond = newStartSecond;
 
-                sink = transitionSink!;
-                outputFile = transitionFile!;
-                transitionSink = null;
-                transitionFile = null;
-                totalSize = transitionTotalSize;
-                lastStartSecond = -1;
-              });
-            }
+        if (newStartSecond >= transitionThreashold) {
+          // Começa um novo arquivo a cada 2 minutos pra evitar estouro de disco
+          if (newStartSecond == transitionThreashold) {
+            getNewOutputFile().then((newFile) {
+              transitionTotalSize = 0;
+              transitionFile = newFile;
+              transitionSink =
+                  transitionFile!.openWrite(mode: FileMode.writeOnly);
+            });
+          }
+          // Mas só começa a processar o novo arquivo quando atingir 5 segundos
+          if (newStartSecond > transitionThreashold + sampleSeconds) {
+            sink.close().then((_) {
+              outputFile.rename(outputFile.path + '_part-${++transitions}');
+              //outputFile.delete();
+
+              developer.log(
+                  "transitioningFile: ${outputFile.path} -> ${transitionFile!.path}");
+
+              sink = transitionSink!;
+              outputFile = transitionFile!;
+              transitionSink = null;
+              transitionFile = null;
+              totalSize = transitionTotalSize;
+              lastStartSecond = -1;
+
+              Chaquopy.executeCode(outputFile.path); // parallel execution
+            });
           }
         }
-      },
-    );
+      }
+    });
 
     foodController.onCancel = () {
       sink.close().then((_) {
-        //outputFile.rename(outputFile.path + '_stopped');
-        outputFile.delete();
+        outputFile.rename(outputFile.path + '_stopped');
+        //outputFile.delete();
       });
-      onRecordingStopped.add(outputFile);
+      onRecordingToggled.add(false);
     };
 
     return subscription;
   }
 
-  Future<int> predict(File file, int tick) {
-    return Chaquopy.executeCode("${file.path}|$tick").then((result) {
-      //developer.log("analysisDetected: ${file.path}|$tick; result: $result");
+  Future<int> predictFile(FileSystemEvent file) {
+    var resultFile = File(file.path);
+    return resultFile.readAsString().then((fileContent) {
+      //resultFile.rename(file.path + '_processed');
+      resultFile.delete();
 
-      var textResult = result['textOutputOrError'].toString();
-      if (textResult.startsWith("Error:")) {
-        throw Exception(textResult.substring(6));
-      }
-
-      var data = textResult.trim().split(' ');
+      var data = fileContent.trim().split(' ');
 
       if (data.length == 18) {
         var means = List<double>.generate(
@@ -135,6 +152,9 @@ class PredictionWidget extends StatefulWidget {
       }
 
       return -1;
+    }).then((prediction) {
+      onNewPrediction.add(prediction as int);
+      return prediction;
     });
   }
 
@@ -176,9 +196,19 @@ class _PredictionWidgetState extends State<PredictionWidget> {
       });
     });
 
-    widget.onRecordingStopped.stream.listen((event) {
+    widget.onRecordingToggled.stream.listen((isRecording) {
+      // Its better not to update state. We can see a little longer the effects.
       setState(() {
-        _detectionRange.clear();
+        if (isRecording) {
+          _detectionRange.clear();
+        } else {
+          var wasAlerted = alertLevel > alertThreashold;
+          alertLevel = 0;
+          silenceCount = 0;
+          if (wasAlerted) {
+            widget.onAlertThreashold.add(false);
+          }
+        }
       });
     });
   }
