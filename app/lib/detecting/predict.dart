@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:chaquopy/chaquopy.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/public/tau.dart';
 import 'package:ninando/recording/audio_engineering.dart';
@@ -103,8 +104,11 @@ class PredictionWidget extends StatefulWidget {
           // Mas só começa a processar o novo arquivo quando atingir 5 segundos
           if (newStartSecond > transitionThreashold + sampleSeconds) {
             sink.close().then((_) {
-              outputFile.rename(outputFile.path + '_part-${++transitions}');
-              //outputFile.delete();
+              if (kDebugMode) {
+                outputFile.rename(outputFile.path + '_part-${++transitions}');
+              } else {
+                outputFile.delete();
+              }
 
               developer.log(
                   "transitioningFile: ${outputFile.path} -> ${transitionFile!.path}");
@@ -125,8 +129,11 @@ class PredictionWidget extends StatefulWidget {
 
     foodController.onCancel = () {
       sink.close().then((_) {
-        outputFile.rename(outputFile.path + '_stopped');
-        //outputFile.delete();
+        if (kDebugMode) {
+          outputFile.rename(outputFile.path + '_stopped');
+        } else {
+          outputFile.delete();
+        }
       });
       onRecordingToggled.add(false);
     };
@@ -137,8 +144,11 @@ class PredictionWidget extends StatefulWidget {
   Future<int> predictFile(FileSystemEvent file) {
     var resultFile = File(file.path);
     return resultFile.readAsString().then((fileContent) {
-      //resultFile.rename(file.path + '_processed');
-      resultFile.delete();
+      if (kDebugMode) {
+        resultFile.rename(file.path + '_processed');
+      } else {
+        resultFile.delete();
+      }
 
       var data = fileContent.trim().split(' ');
 
