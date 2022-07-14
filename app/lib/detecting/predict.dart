@@ -155,7 +155,7 @@ class _PredictionWidgetState extends State<PredictionWidget> {
     widget.onNewPrediction.stream.listen((prediction) {
       _detectionRange.add(prediction);
 
-      var wasAlerted = alertLevel >= alertThreashold;
+      var wasAlerted = alertLevel > alertThreashold;
       if (prediction > 0) {
         alertLevel++;
         silenceCount = 0;
@@ -164,7 +164,7 @@ class _PredictionWidgetState extends State<PredictionWidget> {
         if (silenceCount > 10) alertLevel = 0;
       }
 
-      var isAlerted = alertLevel >= alertThreashold;
+      var isAlerted = alertLevel > alertThreashold;
       if (wasAlerted != isAlerted) {
         widget.onAlertThreashold.add(isAlerted);
       }
