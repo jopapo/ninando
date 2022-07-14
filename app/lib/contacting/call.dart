@@ -106,7 +106,7 @@ class _CallNotificatorWidgetState extends State<CallNotificatorWidget> {
         toolbarOptions: const ToolbarOptions(copy: true, selectAll: true),
         showCursor: true,
         textAlign: TextAlign.left,
-        maxLines: 15);
+        maxLines: 10);
   }
 
   @override
