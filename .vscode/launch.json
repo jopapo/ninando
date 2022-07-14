@@ -15,6 +15,7 @@
             "name": "app (profile mode)",
             "cwd": "app",
             "request": "launch",
+            "toolArgs": ["--no-sound-null-safety"],
             "type": "dart",
             "flutterMode": "profile"
         },
@@ -22,6 +23,7 @@
             "name": "app (release mode)",
             "cwd": "app",
             "request": "launch",
+            "toolArgs": ["--no-sound-null-safety"],
             "type": "dart",
             "flutterMode": "release"
         }
