@@ -104,11 +104,8 @@ class PredictionWidget extends StatefulWidget {
           // Mas só começa a processar o novo arquivo quando atingir 5 segundos
           if (newStartSecond > transitionThreashold + sampleSeconds) {
             sink.close().then((_) {
-              if (kDebugMode) {
-                outputFile.rename(outputFile.path + '_part-${++transitions}');
-              } else {
-                outputFile.delete();
-              }
+              //outputFile.rename(outputFile.path + '_part-${++transitions}');
+              outputFile.delete();
 
               developer.log(
                   "transitioningFile: ${outputFile.path} -> ${transitionFile!.path}");
@@ -129,11 +126,8 @@ class PredictionWidget extends StatefulWidget {
 
     foodController.onCancel = () {
       sink.close().then((_) {
-        if (kDebugMode) {
-          outputFile.rename(outputFile.path + '_stopped');
-        } else {
-          outputFile.delete();
-        }
+        //outputFile.rename(outputFile.path + '_stopped');
+        outputFile.delete();
       });
       onRecordingToggled.add(false);
     };
@@ -144,11 +138,8 @@ class PredictionWidget extends StatefulWidget {
   Future<int> predictFile(FileSystemEvent file) {
     var resultFile = File(file.path);
     return resultFile.readAsString().then((fileContent) {
-      if (kDebugMode) {
-        resultFile.rename(file.path + '_processed');
-      } else {
-        resultFile.delete();
-      }
+      //resultFile.rename(file.path + '_processed');
+      resultFile.delete();
 
       var data = fileContent.trim().split(' ');
 
