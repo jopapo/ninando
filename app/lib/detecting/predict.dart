@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:chaquopy/chaquopy.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/public/tau.dart';
 import 'package:ninando/recording/audio_engineering.dart';
@@ -71,7 +70,7 @@ class PredictionWidget extends StatefulWidget {
     IOSink? transitionSink;
 
     var transitionTotalSize = 0.0;
-    var transitions = 0;
+    //var transitions = 0;
     const transitionThreashold = 60 * 10 - sampleSeconds; // 10 minutes
 
     var outputFile = await getNewOutputFile();
