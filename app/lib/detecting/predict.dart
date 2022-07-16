@@ -89,6 +89,7 @@ class PredictionWidget extends StatefulWidget {
 
       if (newStartSecond > lastStartSecond) {
         lastStartSecond = newStartSecond;
+        sink.flush(); // flush por segundo
 
         if (newStartSecond >= transitionThreashold) {
           // Começa um novo arquivo a cada 2 minutos pra evitar estouro de disco
