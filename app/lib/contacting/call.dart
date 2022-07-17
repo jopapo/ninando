@@ -60,6 +60,8 @@ class _CallNotificatorWidgetState extends State<CallNotificatorWidget> {
       } else {
         history(add: "Choro parou.");
       }
+    }, onError: (error) {
+      history(add: 'Error: $error');
     });
 
     widget.onRecordToggle.stream.listen((isRecording) =>

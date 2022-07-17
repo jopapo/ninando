@@ -2,7 +2,7 @@ from io import SEEK_END
 from librosa_wrapper import zero_crossing_rate, mfcc, spectral_centroid, spectral_rolloff, spectral_bandwidth, rms
 import soundfile as sf
 import numpy as np
-import os, time
+import time
 
 DEFAULT_FRAME_SIZE = 512
 

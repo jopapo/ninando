@@ -76,20 +76,23 @@ class PredictionWidget extends StatefulWidget {
     var outputFile = await getNewOutputFile();
     var sink = outputFile.openWrite(mode: FileMode.writeOnly);
 
+    var flushed = Future.value();
+
     Chaquopy.executeCode(outputFile.path); // parallel execution
 
     var subscription = foodController.stream.listen((buffer) {
-      sink.add((buffer as FoodData).data!);
-      transitionSink?.add(buffer.data!);
+      var data = (buffer as FoodData).data!;
+      flushed.then((_) => sink.add(data));
+      transitionSink?.add(data);
 
-      totalSize += buffer.data!.length;
-      transitionTotalSize += buffer.data!.length;
+      totalSize += data.length;
+      transitionTotalSize += data.length;
       var newStartSecond = (totalSize ~/ fullSampleRate) -
           sampleSeconds; // Need to be always 5 seconds behind
 
       if (newStartSecond > lastStartSecond) {
         lastStartSecond = newStartSecond;
-        sink.flush(); // flush por segundo
+        flushed = flushed.then((_) => sink.flush()); // flush por segundo
 
         if (newStartSecond >= transitionThreashold) {
           // Começa um novo arquivo a cada 2 minutos pra evitar estouro de disco
@@ -117,6 +120,8 @@ class PredictionWidget extends StatefulWidget {
               totalSize = transitionTotalSize;
               lastStartSecond = -1;
 
+              flushed = flushed.then((_) => sink.flush());
+
               Chaquopy.executeCode(outputFile.path); // parallel execution
             });
           }
@@ -138,6 +143,14 @@ class PredictionWidget extends StatefulWidget {
   Future<int> predictFile(FileSystemEvent file) {
     var resultFile = File(file.path);
     return resultFile.readAsString().then((fileContent) {
+      int counter = 0;
+      while (fileContent.isEmpty) {
+        counter++;
+        if (counter > 100) throw Exception("Empty tick file");
+        // Some reads might not be flushed
+        sleep(const Duration(milliseconds: 1));
+        fileContent = resultFile.readAsStringSync();
+      }
       //resultFile.rename(file.path + '_processed');
       resultFile.delete();
 
@@ -149,10 +162,14 @@ class PredictionWidget extends StatefulWidget {
 
         return _customModel.then((svc) {
           return svc.predict(means.standardScale());
+        }).catchError((error) {
+          onAlertThreashold.addError(error);
         });
+      } else {
+        onAlertThreashold
+            .addError(Exception("Data length: ${data.length} - $fileContent"));
+        return -1;
       }
-
-      return -1;
     }).then((prediction) {
       onNewPrediction.add(prediction as int);
       return prediction;
